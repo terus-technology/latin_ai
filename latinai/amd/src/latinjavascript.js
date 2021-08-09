@@ -3,7 +3,7 @@
 import $ from 'jquery';
 import ModalFactory from 'core/modal_factory';
 import Templates from 'core/templates';
-import DataTable from '/question/type/latinai/assets/datatables/datatables.min.js'
+import DataTable from 'qtype_latinai/datatables';
 
 export const showmodalquestion = (modalid) => {
     let mymodal = ModalFactory.create({
@@ -26,7 +26,7 @@ export const loadlatinquestion = (modalid) => {
 
     const loadlatinquestionoptions = {
         processing: true,
-        ajax: "/admin/tool/uploadquestion/ajax.php",
+        ajax: M.cfg.wwwroot+"/admin/tool/uploadquestion/ajax.php",
         columns: [
             { "data": "latin" },
             { "data": "translation_1" },

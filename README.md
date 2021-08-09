@@ -19,8 +19,13 @@ if there is change in JS file (/amd/src) please run the following command to com
 grunt amd --files=question/type/latinai/amd/src/latinjavascript.js
 grunt amd --files=admin/tool/uploadquestion/amd/src/uploadquestion.js
 ```
+## Todo
+- [ ] Moodle 3.11 Comaptible Issue
 
 ## Change Log
+> Version 0.0.3
+* Add Moodle 3.9 Compatible Issues
+
 > Version 0.0.2
 * Comparing given answer with all available Correct Answer
 * Added Non AI Comparing Options
