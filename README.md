@@ -13,7 +13,7 @@ Latin AI Question Type Moodle Plugin, plugin to upload latin question with trans
 2. Run The Update or use the command line `php admin/cli/upgrade.php`
 
 ## Development
-if there is change in JS file (/amd/src) please run the following command to compile the js and applied the changes.
+if there is change in JS file `(/amd/src)` please run the following command to compile the js and applied the changes.
 
 ```shell
 grunt amd --files=question/type/latinai/amd/src/latinjavascript.js
