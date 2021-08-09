@@ -1,0 +1,13 @@
+{{#js}}
+    require(['qtype_latinai/latinjavascript'], function(latinFunction) {
+        latinFunction.loadlatinquestion('{{ modalid }}');
+    });
+{{/js}}
+<table class="table table-striped" id="{{ modalid }}">
+    <thead>
+    <tr>
+        <th width="350">Latin Question</th>
+        <th>Translation</th>
+    </tr>
+    </thead>
+</table>

@@ -1,0 +1,2 @@
+## Latin AI question type
+

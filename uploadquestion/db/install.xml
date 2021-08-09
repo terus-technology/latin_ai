@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="admin/tool/uploadquestion/db" VERSION="20151201" COMMENT="XMLDB file for Moodle admin/tool/uploadquestion"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd">
+
+    <TABLES>
+        <TABLE NAME="latin_question" COMMENT="Latin Questions Bank">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="latin" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_1" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_2" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_3" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_4" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_5" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_6" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_7" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_8" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_9" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_10" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="translation_11" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="checked" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="chapter" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="section" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+                <FIELD NAME="tags" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+        </TABLE>
+    </TABLES>
+</XMLDB>
