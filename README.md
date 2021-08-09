@@ -12,6 +12,14 @@ Latin AI Question Type Moodle Plugin, plugin to upload latin question with trans
 1. Copy `latinai` directory to `question/type/`
 2. Run The Update or use the command line `php admin/cli/upgrade.php`
 
+## Development
+if there is change in JS file (/amd/src) please run the following command to compile the js and applied the changes.
+
+```shell
+grunt amd --files=question/type/latinai/amd/src/latinjavascript.js
+grunt amd --files=admin/tool/uploadquestion/amd/src/uploadquestion.js
+```
+
 ## Change Log
 > Version 0.0.2
 * Comparing given answer with all available Correct Answer
