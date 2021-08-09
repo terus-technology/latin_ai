@@ -26,6 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'tool_uploadquestion';
 $plugin->release = '0.1.0';
-$plugin->version = 2021080600.2;
+$plugin->version = 2021080600.4;
 $plugin->requires = 2019111800;
-$plugin->maturity = MATURITY_ALPHA;
+$plugin->maturity  = MATURITY_STABLE;

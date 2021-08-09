@@ -20,11 +20,15 @@ grunt amd --files=question/type/latinai/amd/src/latinjavascript.js
 grunt amd --files=admin/tool/uploadquestion/amd/src/uploadquestion.js
 ```
 ## Todo
-- [ ] Moodle 3.11 Comaptible Issue
+- [ ] Bug Checking
 
 ## Change Log
+> Version 0.0.4
+* Add Moodle 3.11 Suport
+* Change Upload CSV JS Required Import
+
 > Version 0.0.3
-* Add Moodle 3.9 Compatible Issues
+* Add Moodle 3.9 Suport
 
 > Version 0.0.2
 * Comparing given answer with all available Correct Answer

@@ -30,7 +30,6 @@ class qtype_latinai_edit_form extends question_edit_form {
         global $COURSE, $CFG, $DB, $PAGE;
 
         $modalid = md5(date('ymhis'));
-
         $PAGE->requires->js_call_amd('qtype_latinai/latinjavascript', 'showmodalquestion', array($modalid));
         $PAGE->requires->css('/question/type/latinai/assets/datatables/datatables.min.css', true);
 

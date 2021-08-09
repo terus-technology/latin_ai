@@ -1,6 +1,6 @@
 /* eslint-disable */
 import $ from 'jquery';
-import DataTable from 'assets/datatables/datatables.min.js'
+import DataTable from 'tool_uploadquestion/datatables'
 
 export const init = () => {
     window.console.log('Loaded Js File is loaded');
