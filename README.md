@@ -23,6 +23,9 @@ grunt amd --files=admin/tool/uploadquestion/amd/src/uploadquestion.js
 - [ ] Bug Checking
 
 ## Change Log
+> Version 0.0.5
+* Add Cache Request
+
 > Version 0.0.4
 * Add Moodle 3.11 Suport
 * Change Upload CSV JS Required Import
