@@ -132,7 +132,7 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
             }
         }
 
-        $grade = (sizeof($fraction) >0) ? max($fraction) : 0;
+        $grade = (sizeof($fraction) >0) ? $fraction[0] : 0;
         return array('comparison_score' => $grade);
     }
 
