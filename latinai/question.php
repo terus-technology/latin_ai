@@ -123,17 +123,38 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
 
     protected function find_matching_answer($response)
     {
-        $correct_answer = array_values($this->get_answers());
-        $fraction = [];
-        foreach($correct_answer as $answer){
-            $check_comparation = $this->call_latin_ai_service($answer->answer, $response['answer']);
-            if($check_comparation) {
-                $fraction[] = $check_comparation['comparison_score'];
+        $config = get_config('qtype_latinai');
+        $use_non_ai = $config->no_use_ai;
+        if($use_non_ai) {
+            // Use Non Ai Comparation
+            $correct_answer = array_values($this->get_answers());
+            $fraction = [];
+            foreach($correct_answer as $answer){
+                $check_comparation = $this->call_latin_ai_service($answer->answer, $response['answer']);
+                if($check_comparation) {
+                    $fraction[] = $check_comparation['comparison_score'];
+                }
             }
-        }
 
-        $grade = (sizeof($fraction) >0) ? $fraction[0] : 0;
-        return array('comparison_score' => $grade);
+            $grade = (sizeof($fraction) >0) ? $fraction[0] : 0;
+            return array('comparison_score' => $grade);
+        }else{
+            // Use AI Comparation
+            $correct_answer = array_values($this->get_answers());
+            $arr_correct_answer = [];
+            foreach($correct_answer as $answer){
+                $arr_correct_answer[] = $answer->answer;
+            }
+            // send an array to AI Service
+            $check_comparation = $this->call_latin_ai_service($arr_correct_answer, $response['answer']);
+            if($check_comparation) {
+                $grade = number_format($check_comparation['comparison_score'], 2);
+            }else{
+                $grade = 0;
+            }
+
+            return array('comparison_score' => $grade);
+        }
     }
 
     public function call_latin_ai_service($correct_answer,$given_answer) {
