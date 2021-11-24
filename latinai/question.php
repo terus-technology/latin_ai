@@ -187,7 +187,7 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
                 CURLOPT_POSTFIELDS => json_encode($data),
                 CURLOPT_HTTPHEADER => array(
                     'Content-Type: application/json',
-                    "X-Api-key: $api_key"
+                    "X-Api-Key: $api_key"
                 ),
             ));
             $response = curl_exec($curl);
