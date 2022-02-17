@@ -105,16 +105,13 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
         if($check_comparation) {
             $fraction = $check_comparation['comparison_score'];
             $grade_state = '';
-            if ($fraction <= 0.5) {
-                $state = question_state::$gradedwrong;
-                $grade_state = 'Wrong Answer';
-            } elseif ($fraction > 0.5 && $fraction <= 0.7) {
-                $state = question_state::$gradedpartial;
-                $grade_state = 'Partial Right Answer';
-            } elseif ($fraction > 0.7) {
+            if ($fraction >= 0.8) {
                 $state = question_state::$gradedright;
                 $grade_state = 'Right Answer';
-            }
+            } else {
+                $state = question_state::$gradedwrong;
+                $grade_state = 'Wrong Answer';
+            } 
             return array($fraction, $state, $grade_state, $correct_answer[0]->answer);
         }else{
             print_error('qtypelatinaierrorservice', 'qtype_latinai');
