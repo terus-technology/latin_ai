@@ -17,15 +17,21 @@
 /**
  * Link to CSV Question upload.
  *
- * @package     tool_uploadquestion
- * @copyright   2021 Terus e-Learning <khairu@teruselearning.co.uk>
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    tool_uploadquestion
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-    $ADMIN->add('courses', new admin_externalpage('tooluploadquestion',
-        get_string('pluginname', 'tool_uploadquestion'), "$CFG->wwwroot/$CFG->admin/tool/uploadquestion/index.php"));
+    $ADMIN->add(
+        'courses',
+        new admin_externalpage(
+            'tooluploadquestion',
+            get_string('pluginname', 'tool_uploadquestion'),
+            "$CFG->wwwroot/$CFG->admin/tool/uploadquestion/index.php"
+        )
+    );
 }
-

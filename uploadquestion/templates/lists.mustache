@@ -1,0 +1,36 @@
+<hr/>
+
+{{#is_exists}}
+<table class="table table-striped generaltable" id="table_latin_questionupload">
+    <thead>
+        <tr>
+            <th width="350">Latin</th>
+            <th>Translation</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#latinquestions}}
+        <tr>
+            <td>{{latin}}</td>
+            <td class="small">
+                {{#translations}}
+                    {{.}}<br/>
+                {{/translations}}
+            </td>
+        </tr>
+        {{/latinquestions}}
+    </tbody>
+</table>
+{{/is_exists}}
+
+{{^is_exists}}
+<div class="block">
+    <div class="text-xs-center text-center mt-3" data-region="empty-message">
+        <img class="empty-placeholder-image-lg mt-1"
+            src="{{imageempty}}"
+            alt="{{#str}}norecentdata, tool_uploadquestion{{/str}}"
+            role="presentation">
+        <p class="text-muted mt-3">{{#str}}norecentdata, tool_uploadquestion{{/str}}</p>
+    </div>
+</div>
+{{/is_exists}}
