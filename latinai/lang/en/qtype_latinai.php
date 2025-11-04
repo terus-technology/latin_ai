@@ -14,14 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
  * OU latinai question type language strings.
  *
- * @package   qtype_latinai
- * @copyright  2021 Terus E-Learning
+ * @package    qtype_latinai
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+// phpcs:ignoreFile moodle.Files.LangFilesOrdering.IncorrectOrder
 
 $string['answer'] = 'Answer: {$a}';
 $string['answermustbegiven'] = 'You must enter an answer if there is a grade or feedback.';

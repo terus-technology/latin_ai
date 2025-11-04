@@ -17,11 +17,13 @@
 /**
  * Question type class for the pattern-match question type.
  *
- * @package   qtype_latinai
- * @copyright 2021 Terus E-Learning
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    qtype_latinai
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\exception\moodle_exception;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -29,36 +31,58 @@ require_once($CFG->libdir . '/questionlib.php');
 require_once($CFG->dirroot . '/question/engine/lib.php');
 require_once($CFG->dirroot . '/question/type/latinai/question.php');
 
-
 /**
  * The pattern-match question type.
- *
- * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_latinai extends question_type {
-
+    /**
+     * Move files
+     *
+     * @param  int $questionid
+     * @param  int $oldcontextid
+     * @param  int $newcontextid
+     * @return void
+     */
     public function move_files($questionid, $oldcontextid, $newcontextid) {
         parent::move_files($questionid, $oldcontextid, $newcontextid);
         $this->move_files_in_answers($questionid, $oldcontextid, $newcontextid);
         $this->move_files_in_hints($questionid, $oldcontextid, $newcontextid);
     }
 
+    /**
+     * Delete files
+     *
+     * @param  int $questionid
+     * @param  int $contextid
+     * @return void
+     */
     protected function delete_files($questionid, $contextid) {
         parent::delete_files($questionid, $contextid);
         $this->delete_files_in_answers($questionid, $contextid);
         $this->delete_files_in_hints($questionid, $contextid);
     }
 
+    /**
+     * Save question options
+     *
+     * @param  object $question
+     * @return ?object
+     */
     public function save_question_options($question) {
         parent::save_question_options($question);
         return $this->save_answers($question);
     }
 
+    /**
+     * Save answers
+     *
+     * @param  object $question
+     * @return stdClass
+     */
     protected function save_answers($question) {
         global $DB;
-        $oldanswers = $DB->get_records('question_answers',
-                                            array('question' => $question->id), 'id ASC');
+
+        $oldanswers = $DB->get_records('question_answers', ['question' => $question->id], 'id ASC');
 
         $context = $question->context;
         $maxfraction = -1;
@@ -84,8 +108,13 @@ class qtype_latinai extends question_type {
             $answer->answer = trim($answerdata);
 
             $answer->fraction = $question->fraction[$key];
-            $answer->feedback = $this->import_or_save_files($question->feedback[$key],
-                    $context, 'question', 'answerfeedback', $answer->id);
+            $answer->feedback = $this->import_or_save_files(
+                $question->feedback[$key],
+                $context,
+                'question',
+                'answerfeedback',
+                $answer->id
+            );
             $answer->feedbackformat = $question->feedback[$key]['format'];
             $DB->update_record('question_answers', $answer);
 
@@ -116,38 +145,59 @@ class qtype_latinai extends question_type {
         $fs = get_file_storage();
         foreach ($oldanswers as $oldanswer) {
             $fs->delete_area_files($context->id, 'question', 'answerfeedback', $oldanswer->id);
-            $DB->delete_records('question_answers', array('id' => $oldanswer->id));
+            $DB->delete_records('question_answers', ['id' => $oldanswer->id]);
         }
 
         // Perform sanity checks on fractional grades.
         if ($maxfraction != 1) {
-            $result = new stdClass();
-            $result->noticeyesno = get_string('fractionsnomax', 'question', $maxfraction * 100);
-            return $result;
-        } else {
-            return null;
+            throw new moodle_exception(
+                'fractionsnomax',
+                'question',
+                '',
+                $maxfraction * 100
+            );
         }
+
+        return null;
     }
 
+    /**
+     * Initialise question instance
+     *
+     * @param  question_definition $question
+     * @param  object $questiondata
+     * @return void
+     */
     protected function initialise_question_instance(question_definition $question, $questiondata) {
         parent::initialise_question_instance($question, $questiondata);
         $this->initialise_question_answers($question, $questiondata);
     }
 
+    /**
+     * Get random guess score
+     *
+     * @param  object $questiondata
+     * @return int
+     */
     public function get_random_guess_score($questiondata) {
         return 0;
     }
 
+    /**
+     * Get possible responses
+     *
+     * @param  object $questiondata
+     * @return array
+     */
     public function get_possible_responses($questiondata) {
-        $responses = array();
+        $responses = [];
 
         $starfound = false;
         foreach ($questiondata->options->answers as $aid => $answer) {
             if ($answer->answer === '*') {
                 $starfound = true;
             }
-            $responses[$aid] = new question_possible_response($answer->answer,
-                    $answer->fraction);
+            $responses[$aid] = new question_possible_response($answer->answer, $answer->fraction);
         }
         if (!$starfound) {
             $responses[0] = new question_possible_response(get_string('didnotmatchanyanswer', 'question'), 0);
@@ -155,6 +205,6 @@ class qtype_latinai extends question_type {
 
         $responses[null] = question_possible_response::no_response();
 
-        return array($questiondata->id => $responses);
+        return [$questiondata->id => $responses];
     }
 }

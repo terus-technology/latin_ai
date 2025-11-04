@@ -17,25 +17,42 @@
 /**
  * Admin settings for the latinai question type.
  *
- * @package   qtype_latinai
- * @copyright  2021 Terus E-Learning
+ * @package    qtype_latinai
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
-    $settings->add(new admin_setting_configtext('qtype_latinai/url',
-        get_string('latincomparasion', 'qtype_latinai'), get_string('configcomparationendpoint', 'qtype_latinai'),
-        'http://latincomparison.pythonanywhere.com/comparenoauth', PARAM_TEXT));
+    $settings->add(
+        new admin_setting_configtext(
+            'qtype_latinai/url',
+            get_string('latincomparasion', 'qtype_latinai'),
+            get_string('configcomparationendpoint', 'qtype_latinai'),
+            'http://latincomparison.pythonanywhere.com/comparenoauth',
+            PARAM_TEXT
+        )
+    );
 
-    $settings->add(new admin_setting_configtext('qtype_latinai/api_key',
-        get_string('latincomparasionkey', 'qtype_latinai'), get_string('configcomparationendpointkey', 'qtype_latinai'),
-        'L4t1n1234', PARAM_TEXT));
+    $settings->add(
+        new admin_setting_configtext(
+            'qtype_latinai/api_key',
+            get_string('latincomparasionkey', 'qtype_latinai'),
+            get_string('configcomparationendpointkey', 'qtype_latinai'),
+            'L4t1n1234',
+            PARAM_TEXT
+        )
+    );
 
-    $settings->add(new admin_setting_configcheckbox('qtype_latinai/no_use_ai',
-        get_string('configcomparationnonai', 'qtype_latinai'), get_string('configcomparationnonai_desc', 'qtype_latinai'),
-        false, PARAM_BOOL));
-
+    $settings->add(
+        new admin_setting_configcheckbox(
+            'qtype_latinai/no_use_ai',
+            get_string('configcomparationnonai', 'qtype_latinai'),
+            get_string('configcomparationnonai_desc', 'qtype_latinai'),
+            false,
+            PARAM_BOOL
+        )
+    );
 }

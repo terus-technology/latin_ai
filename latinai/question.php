@@ -15,37 +15,51 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Pattern-match question definition class.
+ * Represents a Latin AI question.
  *
- * @package   qtype_latinai
- * @copyright 2021 Terus E-Learning
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    qtype_latinai
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\exception\moodle_exception;
 
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/question/type/latinai/nonai.php');
 
 /**
- * Represents a Latin AI  question.
- *
- * @copyright 2021 Terus E-Learning
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * Represents a Latin AI question.
  */
 class qtype_latinai_question extends question_graded_by_strategy implements question_response_answer_comparer {
-
     /** @var array of question_answer. */
-    public $answers = array();
+    public $answers = [];
 
+    /**
+     * Constructor
+     *
+     * @return void
+     */
     public function __construct() {
         parent::__construct(new question_first_matching_answer_grading_strategy($this));
     }
 
+    /**
+     * Get expected data
+     *
+     * @return void
+     */
     public function get_expected_data() {
-        return array('answer' => PARAM_RAW_TRIMMED);
+        return ['answer' => PARAM_RAW_TRIMMED];
     }
 
+    /**
+     * Summarise response
+     *
+     * @param  array $response
+     * @return ?string
+     */
     public function summarise_response(array $response) {
         if (isset($response['answer'])) {
             return $response['answer'];
@@ -54,6 +68,12 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
         }
     }
 
+    /**
+     * Is gradable response
+     *
+     * @param  array $response
+     * @return bool
+     */
     public function is_gradable_response(array $response) {
         if (!array_key_exists('answer', $response) || ((!$response['answer']) && $response['answer'] !== '0')) {
             return false;
@@ -62,6 +82,12 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
         }
     }
 
+    /**
+     * Is complete response
+     *
+     * @param  array $response
+     * @return bool
+     */
     public function is_complete_response(array $response) {
         if ($this->is_gradable_response($response)) {
             return (count($this->validate($response)) === 0);
@@ -70,16 +96,28 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
         }
     }
 
+    /**
+     * Validate
+     *
+     * @param  array $response
+     * @return array
+     */
     protected function validate(array $response) {
-        $responsevalidationerrors = array();
+        $responsevalidationerrors = [];
 
         if (!array_key_exists('answer', $response) || ((!$response['answer']) && $response['answer'] !== '0')) {
-            return array(get_string('pleaseenterananswer', 'qtype_latinai'));
+            return [get_string('pleaseenterananswer', 'qtype_latinai')];
         }
 
         return $responsevalidationerrors;
     }
 
+    /**
+     * Get validation error
+     *
+     * @param  array $response
+     * @return string
+     */
     public function get_validation_error(array $response) {
         $errors = $this->validate($response);
         if (count($errors) === 1) {
@@ -90,89 +128,118 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
         }
     }
 
+    /**
+     * Is same response
+     *
+     * @param  array $prevresponse
+     * @param  array $newresponse
+     * @return bool
+     */
     public function is_same_response(array $prevresponse, array $newresponse) {
-        return question_utils::arrays_same_at_key_missing_is_blank(
-                $prevresponse, $newresponse, 'answer');
+        return question_utils::arrays_same_at_key_missing_is_blank($prevresponse, $newresponse, 'answer');
     }
 
+    /**
+     * Get answers
+     *
+     * @return array
+     */
     public function get_answers() {
         return $this->answers;
     }
 
+    /**
+     * Grade response
+     *
+     * @param  array $response
+     * @return array
+     */
     public function grade_response(array $response) {
-        $correct_answer = array_values($this->get_answers());
-        $check_comparation = $this->find_matching_answer($response);
-        if($check_comparation) {
-            $fraction = $check_comparation['comparison_score'];
-            $grade_state = '';
+        $correctanswer = array_values($this->get_answers());
+        $checkcomparation = $this->find_matching_answer($response);
+        if ($checkcomparation) {
+            $fraction = $checkcomparation['comparison_score'];
+            $gradestate = '';
             if ($fraction >= 0.8) {
                 $state = question_state::$gradedright;
-                $grade_state = 'Right Answer';
+                $gradestate = 'Right Answer';
             } else {
                 $state = question_state::$gradedwrong;
-                $grade_state = 'Wrong Answer';
-            } 
-            return array($fraction, $state, $grade_state, $correct_answer[0]->answer);
-        }else{
-            print_error('qtypelatinaierrorservice', 'qtype_latinai');
+                $gradestate = 'Wrong Answer';
+            }
+            return [$fraction, $state, $gradestate, $correctanswer[0]->answer];
+        } else {
+            throw new moodle_exception('qtypelatinaierrorservice', 'qtype_latinai');
         }
     }
 
-    protected function find_matching_answer($response)
-    {
+    /**
+     * Find matching answer
+     *
+     * @param  array $response
+     * @return array
+     */
+    protected function find_matching_answer($response) {
         $config = get_config('qtype_latinai');
-        $use_non_ai = $config->no_use_ai;
-        if($use_non_ai) {
-            // Use Non Ai Comparation
-            $correct_answer = array_values($this->get_answers());
+        $usenonai = $config->no_use_ai;
+        if ($usenonai) {
+            // Use Non AI Comparation.
+            $correctanswer = array_values($this->get_answers());
             $fraction = [];
-            foreach($correct_answer as $answer){
-                $check_comparation = $this->call_latin_ai_service($answer->answer, $response['answer']);
-                if($check_comparation) {
-                    $fraction[] = $check_comparation['comparison_score'];
+            foreach ($correctanswer as $answer) {
+                $checkcomparation = $this->call_latin_ai_service($answer->answer, $response['answer']);
+                if ($checkcomparation) {
+                    $fraction[] = $checkcomparation['comparison_score'];
                 }
             }
 
-            $grade = (sizeof($fraction) >0) ? $fraction[0] : 0;
-            return array('comparison_score' => $grade);
-        }else{
-            // Use AI Comparation
-            $correct_answer = array_values($this->get_answers());
-            $arr_correct_answer = [];
-            foreach($correct_answer as $answer){
-                $arr_correct_answer[] = $answer->answer;
+            $grade = (count($fraction) > 0) ? $fraction[0] : 0;
+            return ['comparison_score' => $grade];
+        } else {
+            // Use AI Comparation.
+            $correctanswer = array_values($this->get_answers());
+            $arrcorrectanswer = [];
+            foreach ($correctanswer as $answer) {
+                $arrcorrectanswer[] = $answer->answer;
             }
-            // send an array to AI Service
-            $check_comparation = $this->call_latin_ai_service($arr_correct_answer, $response['answer']);
-            if($check_comparation) {
-                $grade = number_format($check_comparation['comparison_score'], 2);
-            }else{
+            // Send an array to AI service.
+            $checkcomparation = $this->call_latin_ai_service($arrcorrectanswer, $response['answer']);
+            if ($checkcomparation) {
+                $grade = number_format($checkcomparation['comparison_score'], 2);
+            } else {
                 $grade = 0;
             }
 
-            return array('comparison_score' => $grade);
+            return ['comparison_score' => $grade];
         }
     }
 
-    public function call_latin_ai_service($correct_answer,$given_answer) {
+    /**
+     * Call latin AI service
+     *
+     * @param  string $correctanswer
+     * @param  string $givenanswer
+     * @return void
+     */
+    public function call_latin_ai_service($correctanswer, $givenanswer) {
         $config = get_config('qtype_latinai');
         $url = $config->url;
-        $api_key = $config->api_key;
-        $use_non_ai = $config->no_use_ai;
+        $apikey = $config->api_key;
+        $usenonai = $config->no_use_ai;
 
-        if($use_non_ai) {
-            $compare = new SmithWatermanGotoh();
-            $perc = $compare->compare($correct_answer, $given_answer);
+        if ($usenonai) {
+            $compare = new smith_waterman_gotoh();
+            $perc = $compare->compare($correctanswer, $givenanswer);
             $perc = ($perc > 0) ? number_format($perc, 2) : 0;
-            return array('comparison_score' => $perc);
-        }else{
+            return ['comparison_score' => $perc];
+        } else {
             $curl = curl_init();
-            $data = array(
-                'submission' => $given_answer,
-                'exemplar' => $correct_answer
-            );
+            $data = [
+                'submission' => $givenanswer,
+                'exemplar' => $correctanswer,
+            ];
 
-            curl_setopt_array($curl, array(
+            curl_setopt_array($curl, [
                 CURLOPT_URL => $url,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_MAXREDIRS => 10,
@@ -182,11 +249,11 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                 CURLOPT_CUSTOMREQUEST => 'POST',
                 CURLOPT_POSTFIELDS => json_encode($data),
-                CURLOPT_HTTPHEADER => array(
+                CURLOPT_HTTPHEADER => [
                     'Content-Type: application/json',
-                    "X-Api-Key: $api_key"
-                ),
-            ));
+                    "X-Api-Key: $apikey",
+                ],
+            ]);
             $response = curl_exec($curl);
             curl_close($curl);
 
@@ -201,10 +268,21 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
         }
     }
 
+    /**
+     * Get context
+     *
+     * @return \context
+     */
     public function get_context() {
         return context::instance_by_id($this->contextid);
     }
 
+    /**
+     * Has question capability
+     *
+     * @param  string $type
+     * @return bool
+     */
     protected function has_question_capability($type) {
         global $USER;
         $context = $this->get_context();
@@ -212,12 +290,23 @@ class qtype_latinai_question extends question_graded_by_strategy implements ques
                 ($USER->id == $this->createdby && has_capability("moodle/question:{$type}mine", $context));
     }
 
+    /**
+     * User can view
+     *
+     * @return bool
+     */
     public function user_can_view() {
         return $this->has_question_capability('view');
     }
 
-    public function compare_response_with_answer(array $response, question_answer $answer)
-    {
+    /**
+     * Compare response with answer
+     *
+     * @param  array $response
+     * @param  question_answer $answer
+     * @return void
+     */
+    public function compare_response_with_answer(array $response, question_answer $answer) {
         // TODO: Implement compare_response_with_answer() method.
     }
 }

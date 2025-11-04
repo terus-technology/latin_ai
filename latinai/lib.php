@@ -15,21 +15,30 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Serve question type files
- * @package   qtype_latinai
- * @copyright 2021 Terus E-Learning
+ * Lib
+ *
+ * @package    qtype_latinai
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
 defined('MOODLE_INTERNAL') || die();
-
 
 /**
  * Checks file access for pattern-match questions.
+ *
+ * @param  object $course
+ * @param  object $cm
+ * @param  object $context
+ * @param  mixed $filearea
+ * @param  array $args
+ * @param  bool $forcedownload
+ * @param  ?array $options
+ * @return void
  */
-function qtype_latinai_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options=array()) {
-    global $DB, $CFG;
+function qtype_latinai_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options = []) {
+    global $CFG;
     require_once($CFG->libdir . '/questionlib.php');
     question_pluginfile($course, $context, 'qtype_latinai', $filearea, $args, $forcedownload, $options);
 }
