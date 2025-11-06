@@ -17,12 +17,11 @@
 /**
  * Unit tests for the short answer question definition class.
  *
- * @package    qtype
- * @subpackage shortanswer
- * @copyright  2008 The Open University
+ * @package    qtype_shortanswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -30,12 +29,8 @@ global $CFG;
 require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
 require_once($CFG->dirroot . '/question/type/shortanswer/question.php');
 
-
 /**
  * Unit tests for the short answer question definition class.
- *
- * @copyright  2008 The Open University
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_shortanswergreek_question_test extends advanced_testcase {
     public function test_compare_string_with_wildcard() {

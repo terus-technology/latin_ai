@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * OU latinai question type language strings.
+ * Latin ai question type language strings.
  *
  * @package    qtype_latinai
  * @copyright  2021 Terus e-Learning

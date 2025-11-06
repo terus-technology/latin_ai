@@ -15,30 +15,23 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tests of the upgrade to the new Moodle question engine for attempts at
- * truefalse questions.
+ * Tests of the upgrade to the new Moodle question engine for attempts at truefalse questions.
  *
- * @package    qtype
- * @subpackage shortanswer
- * @copyright  2009 The Open University
+ * @package    qtype_shortanswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->dirroot . '/question/engine/upgrade/tests/helper.php');
 
-
 /**
  * Testing the upgrade of shortanswer question attempts.
- *
- * @copyright  2009 The Open University
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_shortanswergreek_attempt_upgrader_test extends question_attempt_upgrader_test_base {
-
     public function test_shortanswer_deferredfeedback_history620() {
         $quiz = (object) array(
             'id' => '221',
