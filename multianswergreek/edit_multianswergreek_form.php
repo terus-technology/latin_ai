@@ -15,54 +15,105 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Defines the editing form for the multi-answer question type.
+ * Defines the editing form for the multi answer greek question type.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  2007 Jamie Pratt me@jamiep.org
- * @license    http://www.gnu.org/copyleft/gpl.html GNU Public License
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\exception\moodle_exception;
 
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/question/type/numerical/questiontype.php');
 
-
 /**
- * Form for editing multi-answer questions.
- *
- * @copyright  2007 Jamie Pratt me@jamiep.org
- * @license    http://www.gnu.org/copyleft/gpl.html GNU Public License
+ * Form for editing greek multi-answer questions.
  */
 class qtype_multianswergreek_edit_form extends question_edit_form {
-
-    // The variable $questiondisplay will contain the qtype_multianswergreek_extract_question from
-    // the questiontext.
+    /**
+     * questiondisplay
+     *
+     * @var object
+     */
     public $questiondisplay;
-    // The variable $savedquestiondisplay will contain the qtype_multianswergreek_extract_question
-    // from the questiontext in database.
-    public $savedquestion;
+
+    /**
+     * savedquestiondisplay
+     *
+     * @var object
+     */
     public $savedquestiondisplay;
-    /** @var bool this question is used in quiz */
+
+    /**
+     * usedinquiz
+     *
+     * @var bool
+     */
     public $usedinquiz = false;
-    /** @var bool the qtype has been changed */
+
+    /**
+     * qtypechange
+     *
+     * @var bool
+     */
     public $qtypechange = false;
-    /** @var integer number of questions that have been deleted   */
+
+    /**
+     * negativediff
+     *
+     * @var int
+     */
     public $negativediff = 0;
-    /** @var integer number of quiz that used this question   */
+
+    /**
+     * nbofquiz
+     *
+     * @var int
+     */
     public $nbofquiz = 0;
-    /** @var integer number of attempts that used this question   */
+
+    /**
+     * nbofattempts
+     *
+     * @var int
+     */
     public $nbofattempts = 0;
+
+    /**
+     * confirm
+     *
+     * @var int
+     */
     public $confirm = 0;
+
+    /**
+     * reload
+     *
+     * @var bool
+     */
     public $reload = false;
-    /** @var qtype_numerical_answer_processor used when validating numerical answers. */
+
+    /**
+     * ap
+     *
+     * @var ?object
+     */
     protected $ap = null;
 
-
+    /**
+     * Constructor
+     *
+     * @param  mixed $submiturl
+     * @param  mixed $question
+     * @param  mixed $category
+     * @param  mixed $contexts
+     * @param  bool $formeditable
+     * @return void
+     */
     public function __construct($submiturl, $question, $category, $contexts, $formeditable = true) {
-        global $SESSION, $CFG, $DB;
-        $this->regenerate = true;
         $this->reload = optional_param('reload', false, PARAM_BOOL);
 
         $this->usedinquiz = false;
@@ -70,19 +121,21 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
         if (isset($question->id) && $question->id != 0) {
             // TODO MDL-43779 should not have quiz-specific code here.
             $this->savedquestiondisplay = fullclone($question);
-            $this->nbofquiz = $DB->count_records('quiz_slots', array('questionid' => $question->id));
+            $questiondata = question_bank::load_question($question->id);
+            $this->nbofquiz = \qbank_usage\helper::get_question_entry_usage_count($questiondata);
             $this->usedinquiz = $this->nbofquiz > 0;
-            $this->nbofattempts = $DB->count_records_sql("
-                    SELECT count(1)
-                      FROM {quiz_slots} slot
-                      JOIN {quiz_attempts} quiza ON quiza.quiz = slot.quizid
-                     WHERE slot.questionid = ?
-                       AND quiza.preview = 0", array($question->id));
+            $this->nbofattempts = \qbank_usage\helper::get_question_attempts_count_in_quiz((int) $question->id);
         }
 
         parent::__construct($submiturl, $question, $category, $contexts, $formeditable);
     }
 
+    /**
+     * Add question-type specific form fields.
+     *
+     * @param  object $mform the form being built.
+     * @return void
+     */
     protected function definition_inner($mform) {
         $mform->addElement('hidden', 'reload', 1);
         $mform->setType('reload', PARAM_INT);
@@ -102,7 +155,7 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
                 $this->questiondisplay = fullclone($this->savedquestiondisplay);
                 foreach ($this->questiondisplay->options->questions as $subquestion) {
                     if (!empty($subquestion)) {
-                        $subquestion->answer = array('');
+                        $subquestion->answer = [''];
                         foreach ($subquestion->options->answers as $ans) {
                             $subquestion->answer[] = $ans->answer;
                         }
@@ -113,8 +166,10 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
             }
         }
 
-        if (isset($this->savedquestiondisplay->options->questions) &&
-                is_array($this->savedquestiondisplay->options->questions)) {
+        if (
+            isset($this->savedquestiondisplay->options->questions) &&
+            is_array($this->savedquestiondisplay->options->questions)
+        ) {
             $countsavedsubquestions = 0;
             foreach ($this->savedquestiondisplay->options->questions as $subquestion) {
                 if (!empty($subquestion)) {
@@ -125,8 +180,10 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
             $countsavedsubquestions = 0;
         }
         if ($this->reload) {
-            if (isset($this->questiondisplay->options->questions) &&
-                    is_array($this->questiondisplay->options->questions)) {
+            if (
+                isset($this->questiondisplay->options->questions) &&
+                is_array($this->questiondisplay->options->questions)
+            ) {
                 $countsubquestions = 0;
                 foreach ($this->questiondisplay->options->questions as $subquestion) {
                     if (!empty($subquestion)) {
@@ -140,115 +197,120 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
             $countsubquestions = $countsavedsubquestions;
         }
 
-        $mform->addElement('submit', 'analyzequestion',
-                get_string('decodeverifyquestiontext', 'qtype_multianswergreek'));
+        $mform->addElement('submit', 'analyzequestion', get_string('decodeverifyquestiontext', 'qtype_multianswergreek'));
         $mform->registerNoSubmitButton('analyzequestion');
         if ($this->reload) {
             for ($sub = 1; $sub <= $countsubquestions; $sub++) {
-
-                if (isset($this->questiondisplay->options->questions[$sub]->qtype)) {
-                    $this->editas[$sub] = $this->questiondisplay->options->questions[$sub]->qtype;
-                } else {
-                    $this->editas[$sub] = optional_param('sub_'.$sub.'_qtype', 'unknown type', PARAM_PLUGIN);
-                }
-
                 $storemess = '';
-                if (isset($this->savedquestiondisplay->options->questions[$sub]->qtype) &&
-                        $this->savedquestiondisplay->options->questions[$sub]->qtype !=
-                                $this->questiondisplay->options->questions[$sub]->qtype) {
+                if (
+                    isset($this->savedquestiondisplay->options->questions[$sub]->qtype) &&
+                    $this->savedquestiondisplay->options->questions[$sub]->qtype !=
+                    $this->questiondisplay->options->questions[$sub]->qtype
+                ) {
                     $this->qtypechange = true;
-                    $storemess = ' ' . html_writer::tag('span', get_string(
-                            'storedqtype', 'qtype_multianswergreek', question_bank::get_qtype_name(
-                                    $this->savedquestiondisplay->options->questions[$sub]->qtype)),
-                            array('class' => 'error'));
+                    $storemess = ' ' . html_writer::tag(
+                        'span',
+                        get_string(
+                            'storedqtype',
+                            'qtype_multianswergreek',
+                            question_bank::get_qtype_name($this->savedquestiondisplay->options->questions[$sub]->qtype)
+                        ),
+                        ['class' => 'error']
+                    );
                 }
-                            $mform->addElement('header', 'subhdr'.$sub, get_string('questionno', 'question',
-                       '{#'.$sub.'}').'&nbsp;'.question_bank::get_qtype_name(
-                        $this->questiondisplay->options->questions[$sub]->qtype).$storemess);
+                    $mform->addElement(
+                        'header',
+                        'subhdr'.$sub,
+                        get_string('questionno', 'question', '{#'.$sub.'}').
+                        '&nbsp;'.question_bank::get_qtype_name($this->questiondisplay->options->questions[$sub]->qtype).$storemess
+                    );
 
-                $mform->addElement('static', 'sub_'.$sub.'_questiontext',
-                        get_string('questiondefinition', 'qtype_multianswergreek'));
+                $mform->addElement(
+                    'static',
+                    'sub_'.$sub.'_questiontext',
+                    get_string('questiondefinition', 'qtype_multianswergreek')
+                );
 
-                if (isset ($this->questiondisplay->options->questions[$sub]->questiontext)) {
-                    $mform->setDefault('sub_'.$sub.'_questiontext',
-                            $this->questiondisplay->options->questions[$sub]->questiontext['text']);
+                if (isset($this->questiondisplay->options->questions[$sub]->questiontext)) {
+                    $mform->setDefault(
+                        'sub_'.$sub.'_questiontext',
+                        $this->questiondisplay->options->questions[$sub]->questiontext['text']
+                    );
                 }
 
-                $mform->addElement('static', 'sub_'.$sub.'_defaultmark',
-                        get_string('defaultmark', 'question'));
-                $mform->setDefault('sub_'.$sub.'_defaultmark',
-                        $this->questiondisplay->options->questions[$sub]->defaultmark);
+                $mform->addElement('static', 'sub_'.$sub.'_defaultmark', get_string('defaultmark', 'question'));
+                $mform->setDefault('sub_'.$sub.'_defaultmark', $this->questiondisplay->options->questions[$sub]->defaultmark);
 
                 if ($this->questiondisplay->options->questions[$sub]->qtype == 'shortanswer') {
-                    $mform->addElement('static', 'sub_'.$sub.'_usecase',
-                            get_string('casesensitive', 'qtype_shortanswer'));
+                    $mform->addElement('static', 'sub_'.$sub.'_usecase', get_string('casesensitive', 'qtype_shortanswer'));
                 }
 
                 if ($this->questiondisplay->options->questions[$sub]->qtype == 'multichoice') {
-                    $mform->addElement('static', 'sub_'.$sub.'_layout',
-                            get_string('layout', 'qtype_multianswergreek'));
-                    $mform->addElement('static', 'sub_'.$sub.'_shuffleanswers',
-                            get_string('shuffleanswers', 'qtype_multichoice'));
+                    $mform->addElement('static', 'sub_'.$sub.'_layout', get_string('layout', 'qtype_multianswergreek'));
+                    $mform->addElement('static', 'sub_'.$sub.'_shuffleanswers', get_string('shuffleanswers', 'qtype_multichoice'));
                 }
 
                 foreach ($this->questiondisplay->options->questions[$sub]->answer as $key => $ans) {
-                    $mform->addElement('static', 'sub_'.$sub.'_answer['.$key.']',
-                            get_string('answer', 'question'));
+                    $mform->addElement('static', 'sub_'.$sub.'_answer['.$key.']', get_string('answer', 'question'));
 
-                    if ($this->questiondisplay->options->questions[$sub]->qtype == 'numerical' &&
-                            $key == 0) {
-                        $mform->addElement('static', 'sub_'.$sub.'_tolerance['.$key.']',
-                                get_string('acceptederror', 'qtype_numerical'));
+                    if ($this->questiondisplay->options->questions[$sub]->qtype == 'numerical' && $key == 0) {
+                        $mform->addElement(
+                            'static',
+                            'sub_'.$sub.'_tolerance['.$key.']',
+                            get_string('acceptederror', 'qtype_numerical')
+                        );
                     }
 
-                    $mform->addElement('static', 'sub_'.$sub.'_fraction['.$key.']',
-                            get_string('grade'));
+                    $mform->addElement('static', 'sub_'.$sub.'_fraction['.$key.']', get_string('grades'));
 
-                    $mform->addElement('static', 'sub_'.$sub.'_feedback['.$key.']',
-                            get_string('feedback', 'question'));
+                    $mform->addElement('static', 'sub_'.$sub.'_feedback['.$key.']', get_string('feedback', 'question'));
                 }
             }
 
             $this->negativediff = $countsavedsubquestions - $countsubquestions;
-            if (($this->negativediff > 0) ||$this->qtypechange ||
-                    ($this->usedinquiz && $this->negativediff != 0)) {
-                $mform->addElement('header', 'additemhdr',
-                        get_string('warningquestionmodified', 'qtype_multianswergreek'));
+            if (($this->negativediff > 0) ||$this->qtypechange || ($this->usedinquiz && $this->negativediff != 0)) {
+                $mform->addElement('header', 'additemhdr', get_string('warningquestionmodified', 'qtype_multianswergreek'));
             }
             if ($this->negativediff > 0) {
-                $mform->addElement('static', 'alert1', "<strong>".
-                        get_string('questiondeleted', 'qtype_multianswergreek')."</strong>",
-                        get_string('questionsless', 'qtype_multianswergreek', $this->negativediff));
+                $mform->addElement(
+                    'static',
+                    'alert1',
+                    "<strong>".get_string('questiondeleted', 'qtype_multianswergreek')."</strong>",
+                    get_string('questionsless', 'qtype_multianswergreek', $this->negativediff)
+                );
             }
             if ($this->qtypechange) {
-                $mform->addElement('static', 'alert1', "<strong>".
-                        get_string('questiontypechanged', 'qtype_multianswergreek')."</strong>",
-                        get_string('questiontypechangedcomment', 'qtype_multianswergreek'));
+                $mform->addElement(
+                    'static',
+                    'alert1',
+                    "<strong>".get_string('questiontypechanged', 'qtype_multianswergreek')."</strong>",
+                    get_string('questiontypechangedcomment', 'qtype_multianswergreek')
+                );
             }
         }
         if ($this->usedinquiz) {
             if ($this->negativediff < 0) {
                 $diff = $countsubquestions - $countsavedsubquestions;
-                $mform->addElement('static', 'alert1', "<strong>".
-                        get_string('questionsadded', 'qtype_multianswergreek')."</strong>",
-                        "<strong>".get_string('questionsmore', 'qtype_multianswergreek', $diff).
-                        "</strong>");
+                $mform->addElement(
+                    'static',
+                    'alert1',
+                    "<strong>".get_string('questionsadded', 'qtype_multianswergreek')."</strong>",
+                    "<strong>".get_string('questionsmore', 'qtype_multianswergreek', $diff)."</strong>"
+                );
             }
             $a = new stdClass();
             $a->nb_of_quiz = $this->nbofquiz;
             $a->nb_of_attempts = $this->nbofattempts;
-            $mform->addElement('header', 'additemhdr2',
-                    get_string('questionusedinquiz', 'qtype_multianswergreek', $a));
-            $mform->addElement('static', 'alertas',
-                    get_string('youshouldnot', 'qtype_multianswergreek'));
+            $mform->addElement('header', 'additemhdr2', get_string('questionusedinquiz', 'qtype_multianswergreek', $a));
+            $mform->addElement('static', 'alertas', get_string('youshouldnot', 'qtype_multianswergreek'));
         }
-        if (($this->negativediff > 0 || $this->usedinquiz &&
-                ($this->negativediff > 0 || $this->negativediff < 0 || $this->qtypechange)) &&
-                        $this->reload) {
-            $mform->addElement('header', 'additemhdr',
-                    get_string('questionsaveasedited', 'qtype_multianswergreek'));
-            $mform->addElement('checkbox', 'confirm', '',
-                    get_string('confirmquestionsaveasedited', 'qtype_multianswergreek'));
+        if (
+            ($this->negativediff > 0 || $this->usedinquiz && (
+                $this->negativediff > 0 || $this->negativediff < 0 || $this->qtypechange
+            )) && $this->reload
+        ) {
+            $mform->addElement('header', 'additemhdr', get_string('questionsaveasedited', 'qtype_multianswergreek'));
+            $mform->addElement('checkbox', 'confirm', '', get_string('confirmquestionsaveasedited', 'qtype_multianswergreek'));
             $mform->setDefault('confirm', 0);
         } else {
             $mform->addElement('hidden', 'confirm', 0);
@@ -258,13 +320,16 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
         $this->add_interactive_settings(true, true);
     }
 
-
+    /**
+     * Set data
+     *
+     * @param  object $question
+     * @return void
+     */
     public function set_data($question) {
         global $DB;
-        $defaultvalues = array();
-        if (isset($question->id) and $question->id and $question->qtype &&
-                $question->questiontext) {
-
+        $defaultvalues = [];
+        if (isset($question->id) && $question->id && $question->qtype && $question->questiontext) {
             foreach ($question->options->questions as $key => $wrapped) {
                 if (!empty($wrapped)) {
                     // The old way of restoring the definitions is kept to gradually
@@ -282,13 +347,11 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
                                 $parsableanswerdef .= 'NUMERICAL:';
                                 break;
                             default:
-                                print_error('unknownquestiontype', 'question', '',
-                                        $wrapped->qtype);
+                                throw new moodle_exception('unknownquestiontype', 'question', '', $wrapped->qtype);
                         }
                         $separator = '';
                         foreach ($wrapped->options->answers as $subanswer) {
-                            $parsableanswerdef .= $separator
-                                . '%' . round(100 * $subanswer->fraction) . '%';
+                            $parsableanswerdef .= $separator . '%' . round(100 * $subanswer->fraction) . '%';
                             if (is_array($subanswer->answer)) {
                                 $parsableanswerdef .= $subanswer->answer['text'];
                             } else {
@@ -308,8 +371,7 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
                         }
                         $parsableanswerdef .= '}';
                         // Fix the questiontext fields of old questions.
-                        $DB->set_field('question', 'questiontext', $parsableanswerdef,
-                                array('id' => $wrapped->id));
+                        $DB->set_field('question', 'questiontext', $parsableanswerdef, ['id' => $wrapped->id]);
                     } else {
                         $parsableanswerdef = str_replace('&#', '&\#', $wrapped->questiontext);
                     }
@@ -335,13 +397,11 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
                         if ($subquestion->qtype == 'shortanswer') {
                             switch ($subquestion->usecase) {
                                 case '1':
-                                    $defaultvalues[$prefix.'usecase'] =
-                                            get_string('caseyes', 'qtype_shortanswer');
+                                    $defaultvalues[$prefix.'usecase'] = get_string('caseyes', 'qtype_shortanswer');
                                     break;
                                 case '0':
                                 default :
-                                    $defaultvalues[$prefix.'usecase'] =
-                                            get_string('caseno', 'qtype_shortanswer');
+                                    $defaultvalues[$prefix.'usecase'] = get_string('caseno', 'qtype_shortanswer');
                             }
                         }
 
@@ -350,34 +410,33 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
                             if ($subquestion->single == 1) {
                                 switch ($subquestion->layout) {
                                     case '0':
-                                        $defaultvalues[$prefix.'layout'] =
-                                            get_string('layoutselectinline', 'qtype_multianswergreek');
+                                        $defaultvalues[$prefix.'layout'] = get_string(
+                                            'layoutselectinline', 'qtype_multianswergreek'
+                                        );
                                         break;
                                     case '1':
-                                        $defaultvalues[$prefix.'layout'] =
-                                            get_string('layoutvertical', 'qtype_multianswergreek');
+                                        $defaultvalues[$prefix.'layout'] = get_string('layoutvertical', 'qtype_multianswergreek');
                                         break;
                                     case '2':
-                                        $defaultvalues[$prefix.'layout'] =
-                                            get_string('layouthorizontal', 'qtype_multianswergreek');
+                                        $defaultvalues[$prefix.'layout'] = get_string('layouthorizontal', 'qtype_multianswergreek');
                                         break;
                                     default:
-                                        $defaultvalues[$prefix.'layout'] =
-                                            get_string('layoutundefined', 'qtype_multianswergreek');
+                                        $defaultvalues[$prefix.'layout'] = get_string('layoutundefined', 'qtype_multianswergreek');
                                 }
                             } else {
                                 switch ($subquestion->layout) {
                                     case '1':
-                                        $defaultvalues[$prefix.'layout'] =
-                                            get_string('layoutmultiple_vertical', 'qtype_multianswergreek');
+                                        $defaultvalues[$prefix.'layout'] = get_string(
+                                            'layoutmultiple_vertical', 'qtype_multianswergreek'
+                                        );
                                         break;
                                     case '2':
-                                        $defaultvalues[$prefix.'layout'] =
-                                            get_string('layoutmultiple_horizontal', 'qtype_multianswergreek');
+                                        $defaultvalues[$prefix.'layout'] = get_string(
+                                            'layoutmultiple_horizontal', 'qtype_multianswergreek'
+                                        );
                                         break;
                                     default:
-                                        $defaultvalues[$prefix.'layout'] =
-                                            get_string('layoutundefined', 'qtype_multianswergreek');
+                                        $defaultvalues[$prefix.'layout'] = get_string('layoutundefined', 'qtype_multianswergreek');
                                 }
                             }
                             if ($subquestion->shuffleanswers ) {
@@ -388,8 +447,7 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
                         }
                         foreach ($subquestion->answer as $key => $answer) {
                             if ($subquestion->qtype == 'numerical' && $key == 0) {
-                                $defaultvalues[$prefix.'tolerance['.$key.']'] =
-                                        $subquestion->tolerance[0];
+                                $defaultvalues[$prefix.'tolerance['.$key.']'] = $subquestion->tolerance[0];
                             }
                             if (is_array($answer)) {
                                 $answer = $answer['text'];
@@ -397,11 +455,14 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
                             $trimmedanswer = trim($answer);
                             if ($trimmedanswer !== '') {
                                 $answercount++;
-                                if ($subquestion->qtype == 'numerical' &&
-                                        !(qtype_numerical::is_valid_number($trimmedanswer) || $trimmedanswer == '*')) {
-                                    $this->_form->setElementError($prefix.'answer['.$key.']',
-                                            get_string('answermustbenumberorstar',
-                                                    'qtype_numerical'));
+                                if (
+                                    $subquestion->qtype == 'numerical' &&
+                                    !(qtype_numerical::is_valid_number($trimmedanswer) || $trimmedanswer == '*')
+                                ) {
+                                    $this->_form->setElementError(
+                                        $prefix.'answer['.$key.']',
+                                        get_string('answermustbenumberorstar', 'qtype_numerical')
+                                    );
                                 }
                                 if ($subquestion->fraction[$key] == 1) {
                                     $maxgrade = true;
@@ -410,32 +471,38 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
                                     $maxfraction = $subquestion->fraction[$key];
                                 }
                                 // For 'multiresponse' we are OK if there is at least one fraction > 0.
-                                if ($subquestion->qtype == 'multichoice' && $subquestion->single == 0 &&
-                                    $subquestion->fraction[$key] > 0) {
+                                if (
+                                    $subquestion->qtype == 'multichoice' &&
+                                    $subquestion->single == 0 &&
+                                    $subquestion->fraction[$key] > 0
+                                ) {
                                     $maxgrade = true;
                                 }
                             }
 
-                            $defaultvalues[$prefix.'answer['.$key.']'] =
-                                    htmlspecialchars($answer);
+                            $defaultvalues[$prefix.'answer['.$key.']'] = htmlspecialchars($answer);
                         }
                         if ($answercount == 0) {
                             if ($subquestion->qtype == 'multichoice') {
-                                $this->_form->setElementError($prefix.'answer[0]',
-                                        get_string('notenoughanswers', 'qtype_multichoice', 2));
+                                $this->_form->setElementError(
+                                    $prefix.'answer[0]',
+                                    get_string('notenoughanswers', 'qtype_multichoice', 2)
+                                );
                             } else {
-                                $this->_form->setElementError($prefix.'answer[0]',
-                                        get_string('notenoughanswers', 'question', 1));
+                                $this->_form->setElementError(
+                                    $prefix.'answer[0]',
+                                    get_string('notenoughanswers', 'question', 1)
+                                );
                             }
                         }
                         if ($maxgrade == false) {
-                            $this->_form->setElementError($prefix.'fraction[0]',
-                                    get_string('fractionsnomax', 'question'));
+                            $this->_form->setElementError(
+                                $prefix.'fraction[0]',
+                                get_string('fractionsnomax', 'question')
+                            );
                         }
                         foreach ($subquestion->feedback as $key => $answer) {
-
-                            $defaultvalues[$prefix.'feedback['.$key.']'] =
-                                    htmlspecialchars ($answer['text']);
+                            $defaultvalues[$prefix.'feedback['.$key.']'] = htmlspecialchars ($answer['text']);
                         }
                         foreach ($subquestion->fraction as $key => $answer) {
                             $defaultvalues[$prefix.'fraction['.$key.']'] = $answer;
@@ -446,11 +513,10 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
                 }
             }
         }
-        $defaultvalues['alertas'] = "<strong>".get_string('questioninquiz', 'qtype_multianswergreek').
-                "</strong>";
+        $defaultvalues['alertas'] = "<strong>".get_string('questioninquiz', 'qtype_multianswergreek')."</strong>";
 
         if ($defaultvalues != "") {
-            $question = (object)((array)$question + $defaultvalues);
+            $question = (object) ((array) $question + $defaultvalues);
         }
         $question = $this->data_preprocessing_hints($question, true, true);
         parent::set_data($question);
@@ -458,12 +524,13 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
 
     /**
      * Validate that a string is a nubmer formatted correctly for the current locale.
+     *
      * @param string $x a string
      * @return bool whether $x is a number that the numerical question type can interpret.
      */
     protected function is_valid_number($x) {
         if (is_null($this->ap)) {
-            $this->ap = new qtype_numerical_answer_processor(array());
+            $this->ap = new qtype_numerical_answer_processor([]);
         }
 
         list($value, $unit) = $this->ap->apply_units($x);
@@ -471,7 +538,13 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
         return !is_null($value) && !$unit;
     }
 
-
+    /**
+     * Validation
+     *
+     * @param  array $data
+     * @param  array $files
+     * @return array
+     */
     public function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
@@ -479,16 +552,24 @@ class qtype_multianswergreek_edit_form extends question_edit_form {
 
         $errors = array_merge($errors, qtype_multianswergreek_validate_question($questiondisplay));
 
-        if (($this->negativediff > 0 || $this->usedinquiz &&
-                ($this->negativediff > 0 || $this->negativediff < 0 ||
-                        $this->qtypechange)) && !$this->confirm) {
-            $errors['confirm'] =
-                    get_string('confirmsave', 'qtype_multianswergreek', $this->negativediff);
+        if (
+            (
+                $this->negativediff > 0 || $this->usedinquiz && (
+                    $this->negativediff > 0 || $this->negativediff < 0 || $this->qtypechange
+                )
+            ) && !$this->confirm
+        ) {
+            $errors['confirm'] = get_string('confirmsave', 'qtype_multianswergreek', $this->negativediff);
         }
 
         return $errors;
     }
 
+    /**
+     * Qtype
+     *
+     * @return string
+     */
     public function qtype() {
         return 'multianswergreek';
     }

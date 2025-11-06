@@ -15,9 +15,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  2011 David Mudrak <david@moodle.com>
+ * Lib.
+ *
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -29,13 +31,15 @@ defined('MOODLE_INTERNAL') || die();
 class moodle1_qtype_multianswergreek_handler extends moodle1_qtype_handler {
 
     /**
+     * Get question subpaths
+     *
      * @return array
      */
     public function get_question_subpaths() {
-        return array(
+        return [
             'ANSWERS/ANSWER',
             'multianswergreekS/multianswergreek',
-        );
+        ];
     }
 
     /**
@@ -48,7 +52,6 @@ class moodle1_qtype_multianswergreek_handler extends moodle1_qtype_handler {
      * fix would be tricky in XML.
      */
     public function process_question(array $data, array $raw) {
-
         // Convert and write the answers first.
         if (isset($data['answers'])) {
             $this->write_answers($data['answers'], $this->pluginname);
@@ -57,7 +60,7 @@ class moodle1_qtype_multianswergreek_handler extends moodle1_qtype_handler {
         // Convert and write the multianswergreek extra fields.
         foreach ($data['multianswergreeks'] as $multianswergreeks) {
             foreach ($multianswergreeks as $multianswergreek) {
-                $this->write_xml('multianswergreek', $multianswergreek, array('/multianswergreek/id'));
+                $this->write_xml('multianswergreek', $multianswergreek, ['/multianswergreek/id']);
             }
         }
     }

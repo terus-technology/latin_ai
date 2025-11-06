@@ -14,21 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
- * multianswergreek question definition class.
+ * Multianswergreek question definition class.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  2010 Pierre Pichet
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/question/type/questionbase.php');
 require_once($CFG->dirroot . '/question/type/shortanswer/question.php');
 require_once($CFG->dirroot . '/question/type/numerical/question.php');
 require_once($CFG->dirroot . '/question/type/multichoice/question.php');
-
 
 /**
  * Represents a multianswergreek question.
@@ -36,13 +36,10 @@ require_once($CFG->dirroot . '/question/type/multichoice/question.php');
  * A multi-answer question is made of of several subquestions of various types.
  * You can think of it as an application of the composite pattern to qusetion
  * types.
- *
- * @copyright  2010 Pierre Pichet
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_multianswergreek_question extends question_graded_automatically_with_countback {
     /** @var array of question_graded_automatically. */
-    public $subquestions = array();
+    public $subquestions = [];
 
     /**
      * @var array place number => insex in the $subquestions array. Places are
@@ -57,6 +54,13 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
     public $textfragments;
 
     /**
+     * penalty
+     *
+     * @var int
+     */
+    public $penalty = 0;
+
+    /**
      * Get a question_attempt_step_subquestion_adapter
      * @param question_attempt_step $step the step to adapt.
      * @param int $i the subquestion index.
@@ -66,28 +70,45 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return new question_attempt_step_subquestion_adapter($step, 'sub' . $i . '_');
     }
 
+    /**
+     * Start attempt
+     *
+     * @param  question_attempt_step $step
+     * @param  mixed $variant
+     * @return void
+     */
     public function start_attempt(question_attempt_step $step, $variant) {
         foreach ($this->subquestions as $i => $subq) {
             $subq->start_attempt($this->get_substep($step, $i), $variant);
         }
     }
 
+    /**
+     * Apply attempt state
+     *
+     * @param  question_attempt_step $step
+     * @return void
+     */
     public function apply_attempt_state(question_attempt_step $step) {
         foreach ($this->subquestions as $i => $subq) {
             $subq->apply_attempt_state($this->get_substep($step, $i));
         }
     }
 
+    /**
+     * get_question_summary
+     *
+     * @return string
+     */
     public function get_question_summary() {
         $summary = $this->html_to_text($this->questiontext, $this->questiontextformat);
         foreach ($this->subquestions as $i => $subq) {
             switch ($subq->qtype->name()) {
                 case 'multichoice':
-                    $choices = array();
+                    $choices = [];
                     $dummyqa = new question_attempt($subq, $this->contextid);
                     foreach ($subq->get_order($dummyqa) as $ansid) {
-                        $choices[] = $this->html_to_text($subq->answers[$ansid]->answer,
-                                $subq->answers[$ansid]->answerformat);
+                        $choices[] = $this->html_to_text($subq->answers[$ansid]->answer, $subq->answers[$ansid]->answerformat);
                     }
                     $answerbit = '{' . implode('; ', $choices) . '}';
                     break;
@@ -103,6 +124,11 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return $summary;
     }
 
+    /**
+     * Get minimal fraction
+     *
+     * @return float
+     */
     public function get_min_fraction() {
         $fractionsum = 0;
         $fractionmax = 0;
@@ -113,6 +139,11 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return $fractionsum / $fractionmax;
     }
 
+    /**
+     * Get maximal fraction
+     *
+     * @return float
+     */
     public function get_max_fraction() {
         $fractionsum = 0;
         $fractionmax = 0;
@@ -123,13 +154,17 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return $fractionsum / $fractionmax;
     }
 
+    /**
+     * Get expected data
+     *
+     * @return array
+     */
     public function get_expected_data() {
-        $expected = array();
+        $expected = [];
         foreach ($this->subquestions as $i => $subq) {
             $substep = $this->get_substep(null, $i);
             foreach ($subq->get_expected_data() as $name => $type) {
-                if ($subq->qtype->name() == 'multichoice' &&
-                        $subq->layout == qtype_multichoice_base::LAYOUT_DROPDOWN) {
+                if ($subq->qtype->name() == 'multichoice' && $subq->layout == qtype_multichoice_base::LAYOUT_DROPDOWN) {
                     // Hack or MC inline does not work.
                     $expected[$substep->add_prefix($name)] = PARAM_RAW;
                 } else {
@@ -140,8 +175,13 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return $expected;
     }
 
+    /**
+     * Get correct response
+     *
+     * @return array
+     */
     public function get_correct_response() {
-        $right = array();
+        $right = [];
         foreach ($this->subquestions as $i => $subq) {
             $substep = $this->get_substep(null, $i);
             foreach ($subq->get_correct_response() as $name => $type) {
@@ -151,8 +191,14 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return $right;
     }
 
+    /**
+     * Prepare simulated post data
+     *
+     * @param  array $simulatedresponse
+     * @return array
+     */
     public function prepare_simulated_post_data($simulatedresponse) {
-        $postdata = array();
+        $postdata = [];
         foreach ($this->subquestions as $i => $subq) {
             $substep = $this->get_substep(null, $i);
             foreach ($subq->prepare_simulated_post_data($simulatedresponse[$i]) as $name => $value) {
@@ -162,8 +208,14 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return $postdata;
     }
 
+    /**
+     * Get student response values for simulation
+     *
+     * @param  array $postdata
+     * @return array
+     */
     public function get_student_response_values_for_simulation($postdata) {
-        $simulatedresponse = array();
+        $simulatedresponse = [];
         foreach ($this->subquestions as $i => $subq) {
             $substep = $this->get_substep(null, $i);
             $subqpostdata = $substep->filter_array($postdata);
@@ -176,6 +228,12 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return $simulatedresponse;
     }
 
+    /**
+     * Check if response is completed
+     *
+     * @param  array $response
+     * @return bool
+     */
     public function is_complete_response(array $response) {
         foreach ($this->subquestions as $i => $subq) {
             $substep = $this->get_substep(null, $i);
@@ -186,6 +244,12 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return true;
     }
 
+    /**
+     * Is gradable response
+     *
+     * @param  array $response
+     * @return bool
+     */
     public function is_gradable_response(array $response) {
         foreach ($this->subquestions as $i => $subq) {
             $substep = $this->get_substep(null, $i);
@@ -196,6 +260,13 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return false;
     }
 
+    /**
+     * Is same response
+     *
+     * @param  array $prevresponse
+     * @param  array $newresponse
+     * @return bool
+     */
     public function is_same_response(array $prevresponse, array $newresponse) {
         foreach ($this->subquestions as $i => $subq) {
             $substep = $this->get_substep(null, $i);
@@ -207,6 +278,12 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return true;
     }
 
+    /**
+     * Get validation error
+     *
+     * @param  array $response
+     * @return string
+     */
     public function get_validation_error(array $response) {
         if ($this->is_complete_response($response)) {
             return '';
@@ -219,6 +296,7 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
      * The combined state is accumulates in $overallstate. That will be right
      * if all the separate states are right; and wrong if all the separate states
      * are wrong, otherwise, it will be partially right.
+     *
      * @param question_state $overallstate the result so far.
      * @param question_state $newstate the new state to add to the combination.
      * @return question_state the new combined state.
@@ -226,26 +304,27 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
     protected function combine_states($overallstate, $newstate) {
         if (is_null($overallstate)) {
             return $newstate;
-        } else if ($overallstate == question_state::$gaveup &&
-                $newstate == question_state::$gaveup) {
+        } else if ($overallstate == question_state::$gaveup && $newstate == question_state::$gaveup) {
             return question_state::$gaveup;
-        } else if ($overallstate == question_state::$gaveup &&
-                $newstate == question_state::$gradedwrong) {
+        } else if ($overallstate == question_state::$gaveup && $newstate == question_state::$gradedwrong) {
             return question_state::$gradedwrong;
-        } else if ($overallstate == question_state::$gradedwrong &&
-                $newstate == question_state::$gaveup) {
+        } else if ($overallstate == question_state::$gradedwrong && $newstate == question_state::$gaveup) {
             return question_state::$gradedwrong;
-        } else if ($overallstate == question_state::$gradedwrong &&
-                $newstate == question_state::$gradedwrong) {
+        } else if ($overallstate == question_state::$gradedwrong && $newstate == question_state::$gradedwrong) {
             return question_state::$gradedwrong;
-        } else if ($overallstate == question_state::$gradedright &&
-                $newstate == question_state::$gradedright) {
+        } else if ($overallstate == question_state::$gradedright && $newstate == question_state::$gradedright) {
             return question_state::$gradedright;
         } else {
             return question_state::$gradedpartial;
         }
     }
 
+    /**
+     * Grade response
+     *
+     * @param  array $response
+     * @return array
+     */
     public function grade_response(array $response) {
         $overallstate = null;
         $fractionsum = 0;
@@ -262,9 +341,15 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
                 $overallstate = $this->combine_states($overallstate, $newstate);
             }
         }
-        return array($fractionsum / $fractionmax, $overallstate);
+        return [$fractionsum / $fractionmax, $overallstate];
     }
 
+    /**
+     * Clear wrong from response
+     *
+     * @param  array $response
+     * @return array
+     */
     public function clear_wrong_from_response(array $response) {
         foreach ($this->subquestions as $i => $subq) {
             $substep = $this->get_substep(null, $i);
@@ -272,8 +357,12 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
             list($subfraction, $newstate) = $subq->grade_response($subresp);
             if ($newstate != question_state::$gradedright) {
                 foreach ($subresp as $ind => $resp) {
-                    if ($subq->qtype == 'multichoice' && ($subq->layout == qtype_multichoice_base::LAYOUT_VERTICAL
-                            || $subq->layout == qtype_multichoice_base::LAYOUT_HORIZONTAL)) {
+                    if (
+                        $subq->qtype == 'multichoice' && (
+                            $subq->layout == qtype_multichoice_base::LAYOUT_VERTICAL ||
+                            $subq->layout == qtype_multichoice_base::LAYOUT_HORIZONTAL
+                        )
+                    ) {
                         $response[$substep->add_prefix($ind)] = '-1';
                     } else {
                         $response[$substep->add_prefix($ind)] = '';
@@ -284,6 +373,12 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return $response;
     }
 
+    /**
+     * Get number of parts right
+     *
+     * @param  array $response
+     * @return array
+     */
     public function get_num_parts_right(array $response) {
         $numright = 0;
         foreach ($this->subquestions as $i => $subq) {
@@ -294,16 +389,23 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
                 $numright += 1;
             }
         }
-        return array($numright, count($this->subquestions));
+        return [$numright, count($this->subquestions)];
     }
 
+    /**
+     * Compute final grade
+     *
+     * @param  array $responses
+     * @param  int $totaltries
+     * @return float
+     */
     public function compute_final_grade($responses, $totaltries) {
         $fractionsum = 0;
         $fractionmax = 0;
         foreach ($this->subquestions as $i => $subq) {
             $fractionmax += $subq->defaultmark;
 
-            $lastresponse = array();
+            $lastresponse = [];
             $lastchange = 0;
             $subfraction = 0;
             foreach ($responses as $responseindex => $response) {
@@ -323,8 +425,14 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return $fractionsum / $fractionmax;
     }
 
+    /**
+     * Summarise response
+     *
+     * @param  array $response
+     * @return string
+     */
     public function summarise_response(array $response) {
-        $summary = array();
+        $summary = [];
         foreach ($this->subquestions as $i => $subq) {
             $substep = $this->get_substep(null, $i);
             $a = new stdClass();
@@ -336,23 +444,30 @@ class qtype_multianswergreek_question extends question_graded_automatically_with
         return implode('; ', $summary);
     }
 
+    /**
+     * Check file access
+     *
+     * @param  object $qa
+     * @param  object $options
+     * @param  string $component
+     * @param  string $filearea
+     * @param  array $args
+     * @param  bool $forcedownload
+     * @return bool
+     */
     public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
         if ($component == 'question' && $filearea == 'answer') {
             return true;
-
         } else if ($component == 'question' && $filearea == 'answerfeedback') {
             // Full logic to control which feedbacks a student can see is too complex.
             // Just allow access to all images. There is a theoretical chance the
             // students could see files they are not meant to see by guessing URLs,
             // but it is remote.
             return $options->feedback;
-
         } else if ($component == 'question' && $filearea == 'hint') {
             return $this->check_hint_file_access($qa, $options, $args);
-
         } else {
-            return parent::check_file_access($qa, $options, $component, $filearea,
-                    $args, $forcedownload);
+            return parent::check_file_access($qa, $options, $component, $filearea, $args, $forcedownload);
         }
     }
 }

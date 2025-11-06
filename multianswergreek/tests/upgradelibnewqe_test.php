@@ -15,21 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tests of the upgrade to the new Moodle question engine for attempts at
- * multianswergreek questions.
+ * Tests of the upgrade to the new Moodle question engine for attempts at multianswergreek questions.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  2011 The Open University
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->dirroot . '/question/engine/upgrade/tests/helper.php');
-
 
 /**
  * Testing the upgrade of multianswergreek question attempts.

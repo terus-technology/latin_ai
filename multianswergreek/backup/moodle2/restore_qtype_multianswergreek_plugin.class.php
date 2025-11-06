@@ -15,16 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package    moodlecore
- * @subpackage backup-moodle2
- * @copyright  2010 onwards Eloy Lafuente (stronk7) {@link http://stronk7.com}
+ * Restore.
+ *
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/question/type/multianswergreek/questiontype.php');
+
 /**
  * restore plugin class that provides the necessary information
  * needed to restore one multianswergreek qtype plugin
@@ -33,12 +35,11 @@ require_once($CFG->dirroot . '/question/type/multianswergreek/questiontype.php')
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class restore_qtype_multianswergreek_plugin extends restore_qtype_plugin {
-
     /**
      * Returns the paths to be handled by the plugin at question level
      */
     protected function define_question_plugin_structure() {
-        $paths = array();
+        $paths = [];
 
         // This qtype uses question_answers, add them.
         $this->add_question_question_answers($paths);
@@ -95,12 +96,11 @@ class restore_qtype_multianswergreek_plugin extends restore_qtype_plugin {
         // Now that all the questions have been restored, let's process
         // the created question_multianswergreek sequences (list of question ids).
         $rs = $DB->get_recordset_sql("
-                SELECT qma.id, qma.sequence
-                  FROM {question_multianswergreek} qma
-                  JOIN {backup_ids_temp} bi ON bi.newitemid = qma.question
-                 WHERE bi.backupid = ?
-                   AND bi.itemname = 'question_created'",
-                array($this->get_restoreid()));
+            SELECT qma.id, qma.sequence
+            FROM {question_multianswergreek} qma
+            JOIN {backup_ids_temp} bi ON bi.newitemid = qma.question
+            WHERE bi.backupid = ? AND bi.itemname = 'question_created'
+        ", [$this->get_restoreid()]);
         foreach ($rs as $rec) {
             $sequencearr = preg_split('/,/', $rec->sequence, -1, PREG_SPLIT_NO_EMPTY);
             if (substr_count($rec->sequence, ',') + 1 != count($sequencearr)) {
@@ -111,22 +111,27 @@ class restore_qtype_multianswergreek_plugin extends restore_qtype_plugin {
                 $sequencearr[$key] = $this->get_mappingid('question', $question);
             }
             $sequence = implode(',', $sequencearr);
-            $DB->set_field('question_multianswergreek', 'sequence', $sequence,
-                    array('id' => $rec->id));
+            $DB->set_field('question_multianswergreek', 'sequence', $sequence, ['id' => $rec->id]);
             if (!empty($sequence)) {
                 // Get relevant data indexed by positionkey from the multianswergreeks table.
-                $wrappedquestions = $DB->get_records_list('question', 'id',
-                    explode(',', $sequence), 'id ASC');
+                $wrappedquestions = $DB->get_records_list('question', 'id', explode(',', $sequence), 'id ASC');
                 foreach ($wrappedquestions as $wrapped) {
                     if ($wrapped->qtype == 'multichoice') {
                         question_bank::get_qtype($wrapped->qtype)->get_question_options($wrapped);
                         if (isset($wrapped->options->shuffleanswers)) {
                             preg_match('/'.ANSWER_REGEX.'/s', $wrapped->questiontext, $answerregs);
-                            if (isset($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE]) &&
-                                    $answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE] !== '') {
+                            if (
+                                isset($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE]) &&
+                                $answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE] !== ''
+                            ) {
                                 $wrapped->options->shuffleanswers = 0;
-                                $DB->set_field_select('qtype_multichoice_options', 'shuffleanswers', '0', "id =:select",
-                                    array('select' => $wrapped->options->id) );
+                                $DB->set_field_select(
+                                    'qtype_multichoice_options',
+                                    'shuffleanswers',
+                                    '0',
+                                    "id =:select",
+                                    ['select' => $wrapped->options->id]
+                                );
                             }
                         }
                     }
@@ -136,14 +141,20 @@ class restore_qtype_multianswergreek_plugin extends restore_qtype_plugin {
         $rs->close();
     }
 
+    /**
+     * Recode response
+     *
+     * @param  int $questionid
+     * @param  int $sequencenumber
+     * @param  array $response
+     * @return array
+     */
     public function recode_response($questionid, $sequencenumber, array $response) {
         global $DB;
 
-        $qtypes = $DB->get_records_menu('question', array('parent' => $questionid),
-                '', 'id, qtype');
+        $qtypes = $DB->get_records_menu('question', ['parent' => $questionid], '', 'id, qtype');
 
-        $sequence = $DB->get_field('question_multianswergreek', 'sequence',
-                array('question' => $questionid));
+        $sequence = $DB->get_field('question_multianswergreek', 'sequence', ['question' => $questionid]);
 
         $fakestep = new question_attempt_step_read_only($response);
 
@@ -151,8 +162,12 @@ class restore_qtype_multianswergreek_plugin extends restore_qtype_plugin {
             $i = $key + 1;
 
             $substep = new question_attempt_step_subquestion_adapter($fakestep, 'sub' . $i . '_');
-            $recodedresponse = $this->step->questions_recode_response_data($qtypes[$subqid],
-                    $subqid, $sequencenumber, $substep->get_all_data());
+            $recodedresponse = $this->step->questions_recode_response_data(
+                $qtypes[$subqid],
+                $subqid,
+                $sequencenumber,
+                $substep->get_all_data()
+            );
 
             foreach ($recodedresponse as $name => $value) {
                 $response[$substep->add_prefix($name)] = $value;
@@ -174,10 +189,9 @@ class restore_qtype_multianswergreek_plugin extends restore_qtype_plugin {
     public function recode_legacy_state_answer($state) {
         global $DB;
         $answer = $state->answer;
-        $resultarr = array();
+        $resultarr = [];
         // Get sequence of questions.
-        $sequence = $DB->get_field('question_multianswergreek', 'sequence',
-                array('question' => $state->question));
+        $sequence = $DB->get_field('question_multianswergreek', 'sequence', ['question' => $state->question]);
         $sequencearr = explode(',', $sequence);
         // Let's process each pair.
         foreach (explode(',', $answer) as $pair) {
@@ -188,15 +202,14 @@ class restore_qtype_multianswergreek_plugin extends restore_qtype_plugin {
             // Note it is already one *new* questionid that doesn't need mapping.
             $questionid = $sequencearr[$sequenceid - 1];
             // Fetch qtype of the question (needed for delegation).
-            $questionqtype = $DB->get_field('question', 'qtype', array('id' => $questionid));
+            $questionqtype = $DB->get_field('question', 'qtype', ['id' => $questionid]);
             // Delegate subanswer recode to proper qtype, faking one question_states record.
             $substate = new stdClass();
             $substate->question = $questionid;
             $substate->answer = $subanswer;
             $newanswer = $this->step->restore_recode_legacy_answer($substate, $questionqtype);
-            $resultarr[] = implode('-', array($sequenceid, $newanswer));
+            $resultarr[] = implode('-', [$sequenceid, $newanswer]);
         }
         return implode(',', $resultarr);
     }
-
 }

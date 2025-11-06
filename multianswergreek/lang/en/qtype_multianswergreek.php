@@ -15,13 +15,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Strings for component 'qtype_multianswergreek', language 'en', branch 'MOODLE_20_STABLE'
+ * Multi answer greek question type language strings.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+// phpcs:ignoreFile moodle.Files.LangFilesOrdering.IncorrectOrder
 
 $string['confirmquestionsaveasedited'] = 'I confirm that I want the question to be saved as edited';
 $string['confirmsave'] = 'Confirm then save {$a}';
@@ -39,7 +41,7 @@ $string['layoutvertical'] = 'Vertical column of radio buttons';
 $string['nooptionsforsubquestion'] = 'Unable to get options for question part # {$a->sub} (question->id={$a->id})';
 $string['noquestions'] = 'The Cloze(multianswer) question "<strong>{$a}</strong>" does not contain any question';
 $string['pleaseananswerallparts'] = 'Please answer all parts of the question.';
-$string['pluginname'] = 'Embedded answers (Greek)';
+$string['pluginname'] = 'Embedded Answers (Greek)';
 $string['pluginname_help'] = 'Embedded answers (Cloze) questions consist of a passage of text with questions such as multiple-choice and short answer embedded within it.';
 $string['pluginname_link'] = 'question/type/multianswergreek';
 $string['pluginnameadding'] = 'Adding an Embedded answers (Greek) question';
@@ -50,11 +52,11 @@ $string['qtypenotrecognized'] = 'questiontype {$a} not recognized';
 $string['questiondefinition'] = 'Question definition';
 $string['questiondeleted'] = 'Question deleted';
 $string['questioninquiz'] = '
-
 <ul>
-  <li>add or delete questions, </li>
-  <li>change the questions order in the text,</li>
-  <li>change their question type (numerical, shortanswer, multiple choice). </li></ul>
+    <li>add or delete questions, </li>
+    <li>change the questions order in the text,</li>
+    <li>change their question type (numerical, shortanswer, multiple choice). </li>
+</ul>
 ';
 $string['questionsadded'] = 'Question added';
 $string['questionsless'] = '{$a} question(s) less than in the multianswergreek question stored in the database';

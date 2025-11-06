@@ -17,33 +17,32 @@
 /**
  * Upgrade library code for the multianswergreek question type.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  2011 The Open University
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
 defined('MOODLE_INTERNAL') || die();
-
 
 /**
  * Class for converting attempt data for multianswergreek questions when upgrading
  * attempts to the new question engine.
  *
  * This class is used by the code in question/engine/upgrade/upgradelib.php.
- *
- * @copyright  2011 The Open University
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_multianswergreek_qe2_attempt_updater extends question_qtype_attempt_updater {
-
+    /**
+     * Question summary
+     *
+     * @return string
+     */
     public function question_summary() {
         $summary = $this->to_text($this->question->questiontext);
         foreach ($this->question->options->questions as $i => $subq) {
             switch ($subq->qtype) {
                 case 'multichoice':
-                    $choices = array();
+                    $choices = [];
                     foreach ($subq->options->answers as $ans) {
                         $choices[] = $this->to_text($ans->answer);
                     }
@@ -61,8 +60,13 @@ class qtype_multianswergreek_qe2_attempt_updater extends question_qtype_attempt_
         return $summary;
     }
 
+    /**
+     * Right answer
+     *
+     * @return string
+     */
     public function right_answer() {
-        $right = array();
+        $right = [];
 
         foreach ($this->question->options->questions as $i => $subq) {
             foreach ($subq->options->answers as $ans) {
@@ -76,20 +80,31 @@ class qtype_multianswergreek_qe2_attempt_updater extends question_qtype_attempt_
         return $this->display_response($right);
     }
 
+    /**
+     * Explode answer
+     *
+     * @param  string $answer
+     * @return array
+     */
     public function explode_answer($answer) {
-        $response = array();
+        $response = [];
 
         foreach (explode(',', $answer) as $part) {
             list($index, $partanswer) = explode('-', $part, 2);
-            $response[$index] = str_replace(
-                    array('&#0044;', '&#0045;'), array(",", "-"), $partanswer);
+            $response[$index] = str_replace(['&#0044;', '&#0045;'], [",", "-"], $partanswer);
         }
 
         return $response;
     }
 
+    /**
+     * Display response
+     *
+     * @param  array $response
+     * @return string
+     */
     public function display_response($response) {
-        $summary = array();
+        $summary = [];
         foreach ($this->question->options->questions as $i => $subq) {
             $a = new stdClass();
             $a->i = $i;
@@ -100,6 +115,12 @@ class qtype_multianswergreek_qe2_attempt_updater extends question_qtype_attempt_
         return implode('; ', $summary);
     }
 
+    /**
+     * Response summary
+     *
+     * @param  object $state
+     * @return string
+     */
     public function response_summary($state) {
         $response = $this->explode_answer($state->answer);
         foreach ($this->question->options->questions as $i => $subq) {
@@ -110,16 +131,28 @@ class qtype_multianswergreek_qe2_attempt_updater extends question_qtype_attempt_
         return $this->display_response($response);
     }
 
+    /**
+     * Was answered?
+     *
+     * @param  object $state
+     * @return bool
+     */
     public function was_answered($state) {
         return !empty($state->answer);
     }
 
+    /**
+     * Set first step data elements
+     *
+     * @param  object $state
+     * @param  array $data
+     * @return void
+     */
     public function set_first_step_data_elements($state, &$data) {
         foreach ($this->question->options->questions as $i => $subq) {
             switch ($subq->qtype) {
                 case 'multichoice':
-                    $data[$this->add_prefix('_order', $i)] =
-                            implode(',', array_keys($subq->options->answers));
+                    $data[$this->add_prefix('_order', $i)] = implode(',', array_keys($subq->options->answers));
                     break;
                 case 'numerical':
                     $data[$this->add_prefix('_separators', $i)] = '.$,';
@@ -128,9 +161,23 @@ class qtype_multianswergreek_qe2_attempt_updater extends question_qtype_attempt_
         }
     }
 
+    /**
+     * Supply missing first step data
+     *
+     * @param  array $data
+     * @return void
+     */
     public function supply_missing_first_step_data(&$data) {
+        // Currently no action.
     }
 
+    /**
+     * Set data elements for step
+     *
+     * @param  object $state
+     * @param  array $data
+     * @return void
+     */
     public function set_data_elements_for_step($state, &$data) {
         $response = $this->explode_answer($state->answer);
         foreach ($this->question->options->questions as $i => $subq) {
@@ -140,7 +187,7 @@ class qtype_multianswergreek_qe2_attempt_updater extends question_qtype_attempt_
 
             switch ($subq->qtype) {
                 case 'multichoice':
-                    $choices = array();
+                    $choices = [];
                     $order = 0;
                     foreach ($subq->options->answers as $ans) {
                         if ($ans->id == $response[$i]) {
@@ -158,6 +205,13 @@ class qtype_multianswergreek_qe2_attempt_updater extends question_qtype_attempt_
         }
     }
 
+    /**
+     * Add prefix
+     *
+     * @param  string $field
+     * @param  string $i
+     * @return string
+     */
     public function add_prefix($field, $i) {
         $prefix = 'sub' . $i . '_';
         if (substr($field, 0, 2) === '!_') {

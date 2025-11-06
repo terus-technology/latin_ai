@@ -15,15 +15,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package    moodlecore
- * @subpackage backup-moodle2
- * @copyright  2010 onwards Eloy Lafuente (stronk7) {@link http://stronk7.com}
+ * Back up.
+ *
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
 defined('MOODLE_INTERNAL') || die();
-
 
 /**
  * Provides the information to backup multianswergreek questions
@@ -32,7 +32,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class backup_qtype_multianswergreek_plugin extends backup_qtype_plugin {
-
     /**
      * Returns the qtype information to attach to question element
      */
@@ -52,15 +51,13 @@ class backup_qtype_multianswergreek_plugin extends backup_qtype_plugin {
         $this->add_question_question_answers($pluginwrapper);
 
         // Now create the qtype own structures.
-        $multianswergreek = new backup_nested_element('multianswergreek', array('id'), array(
-            'question', 'sequence'));
+        $multianswergreek = new backup_nested_element('multianswergreek', ['id'], ['question', 'sequence']);
 
         // Now the own qtype tree.
         $pluginwrapper->add_child($multianswergreek);
 
         // Set source to populate the data.
-        $multianswergreek->set_source_table('question_multianswergreek',
-                array('question' => backup::VAR_PARENTID));
+        $multianswergreek->set_source_table('question_multianswergreek', ['question' => backup::VAR_PARENTID]);
 
         // Don't need to annotate ids nor files.
 

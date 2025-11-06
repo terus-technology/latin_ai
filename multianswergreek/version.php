@@ -15,24 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version information for the multi-answer question type.
+ * Version details.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'qtype_multianswergreek';
-$plugin->version   = 2020040702;
-
-$plugin->requires  = 2018112800;
-$plugin->dependencies = array(
-    'qtype_multichoice' => 2018112800,
-    'qtype_numerical'   => 2018112800,
-    'qtype_shortanswer' => 2018112800,
-);
-
+$plugin->version   = 2025110500;
+$plugin->requires  = 2024100100;
+$plugin->dependencies = [
+    'qtype_multichoice' => 2024100700,
+    'qtype_numerical'   => 2024100700,
+    'qtype_shortanswer' => 2024100700,
+];
 $plugin->maturity  = MATURITY_STABLE;
