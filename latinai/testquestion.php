@@ -82,7 +82,8 @@ if ($fromform = $form->get_data()) {
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('testquestionheader', 'qtype_latinai', format_string($questiondata->name)));
-echo '<p>' . $PAGE->get_renderer('core_question')->question_preview_link($question->id, $context, true) . '</p>';
+$previewurl = qbank_previewquestion\helper::question_preview_url($question->id, null, null, null, null, $context);
+echo html_writer::link($previewurl, get_string('previewquestion', 'question', $question->name));
 $form->display();
 
 if ($table) {

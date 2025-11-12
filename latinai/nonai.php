@@ -33,7 +33,7 @@ class smith_waterman_gotoh {
     /**
      * gapvalue
      *
-     * @var int
+     * @var float
      */
     private $gapvalue;
 
@@ -65,31 +65,38 @@ class smith_waterman_gotoh {
     /**
      * Compare
      *
-     * @param  int $a
-     * @param  int $b
+     * @param  string $a
+     * @param  string $b
      * @return float
      */
     public function compare($a, $b) {
-        if (empty($a) && empty($b)) {
+        $a = trim(mb_strtolower($a));
+        $b = trim(mb_strtolower($b));
+
+        if ($a === '' && $b === '') {
             return 1.0;
         }
 
-        if (empty($a) || empty($b)) {
+        if ($a === '' || $b === '') {
             return 0.0;
         }
 
-        $maxdistance = min(mb_strlen($a), mb_strlen($b)) * max($this->substitution->max(), $this->gapvalue);
-        return $this->smith_waterman_gotoh($a, $b) / $maxdistance;
+        if ($a === $b) {
+            return 1.0;
+        }
+
+        $maxdistance = min(mb_strlen($a), mb_strlen($b)) * max($this->substitution->max(), abs($this->gapvalue));
+        return $this->compute_score($a, $b) / $maxdistance;
     }
 
     /**
      * Smith waterman gotoh
      *
-     * @param  int $s
-     * @param  int $t
+     * @param  string $s
+     * @param  string $t
      * @return int
      */
-    private function smith_waterman_gotoh($s, $t) {
+    private function compute_score($s, $t) {
         $v0 = [];
         $v1 = [];
         $tlen = mb_strlen($t);
@@ -154,7 +161,7 @@ class smith_waterman_match_mismatch {
      */
     public function __construct($matchvalue, $mismatchvalue) {
         if ($matchvalue <= $mismatchvalue) {
-            throw new Exception("matchvalue must be > matchvalue");
+            throw new Exception("matchvalue must be > mismatchvalue");
         }
 
         $this->matchvalue = $matchvalue;
@@ -164,9 +171,9 @@ class smith_waterman_match_mismatch {
     /**
      * Compare
      *
-     * @param  int $a
+     * @param  array $a
      * @param  int $aindex
-     * @param  int $b
+     * @param  array $b
      * @param  int $bindex
      * @return int
      */
