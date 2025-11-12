@@ -250,7 +250,7 @@ class qtype_multianswergreek_textfield_renderer extends qtype_multianswergreek_s
         foreach ($subq->answers as $ans) {
             $size = max($size, core_text::strlen(trim($ans->answer)));
         }
-        $size = min(60, round($size + rand(0, $size * 0.15)));
+        $size = min(60, round($size + mt_rand(0, (int) round($size * 0.15))));
         // The rand bit is to make guessing harder.
 
         $inputattributes = [
