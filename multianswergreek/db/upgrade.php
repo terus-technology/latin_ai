@@ -17,9 +17,9 @@
 /**
  * Multi-answer question type upgrade code.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  1999 onwards Martin Dougiamas {@link http://moodle.com}
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -27,11 +27,11 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * Upgrade code for the multi-answer question type.
+ *
  * @param int $oldversion the version we are upgrading from.
+ * @return bool
  */
 function xmldb_qtype_multianswergreek_upgrade($oldversion) {
-    global $CFG;
-
     // Automatically generated Moodle v3.2.0 release upgrade line.
     // Put any upgrade step following this.
 

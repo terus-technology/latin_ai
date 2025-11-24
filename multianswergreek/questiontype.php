@@ -17,12 +17,13 @@
 /**
  * Question type class for the multi-answer question type.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  1999 onwards Martin Dougiamas {@link http://moodle.com}
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\exception\moodle_exception;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -32,25 +33,37 @@ require_once($CFG->dirroot . '/question/type/numerical/questiontype.php');
 
 /**
  * The multi-answer question type class.
- *
- * @copyright  1999 onwards Martin Dougiamas  {@link http://moodle.com}
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_multianswergreek extends question_type {
-
+    /**
+     * Can analyse responses
+     *
+     * @return bool
+     */
     public function can_analyse_responses() {
         return false;
     }
 
+    /**
+     * Get question options
+     *
+     * @param  object $question
+     * @return bool
+     */
     public function get_question_options($question) {
-        global $DB, $OUTPUT;
+        global $DB;
+
+        parent::get_question_options($question);
 
         // Get relevant data indexed by positionkey from the multianswergreeks table.
-        $sequence = $DB->get_field('question_multianswergreek', 'sequence',
-                array('question' => $question->id), MUST_EXIST);
+        $sequence = $DB->get_field('question_multianswergreek', 'sequence', ['question' => $question->id], MUST_EXIST);
 
-        $wrappedquestions = $DB->get_records_list('question', 'id',
-                explode(',', $sequence), 'id ASC');
+        if (empty($sequence)) {
+            $question->options->questions = [];
+            return true;
+        }
+
+        $wrappedquestions = $DB->get_records_list('question', 'id', explode(',', $sequence), 'id ASC');
 
         // We want an array with question ids as index and the positions as values.
         $sequence = array_flip(explode(',', $sequence));
@@ -58,28 +71,39 @@ class qtype_multianswergreek extends question_type {
             $val++;
         });
 
-        // If a question is lost, the corresponding index is null
-        // so this null convention is used to test $question->options->questions
-        // before using the values.
-        // First all possible questions from sequence are nulled
-        // then filled with the data if available in  $wrappedquestions.
+        // Due to a bug, questions can be lost (see MDL-54724). So we first fill the question
+        // options with this dummy "replacement" type. These are overridden in the loop below
+        // leaving behind only those questions which no longer exist. The renderer then looks
+        // for this deleted type to display information to the user about the corrupted question
+        // data.
         foreach ($sequence as $seq) {
-            $question->options->questions[$seq] = '';
+            $question->options->questions[$seq] = (object) [
+                'qtype' => 'subquestion_replacement',
+                'defaultmark' => 1,
+                'options' => (object) [
+                    'answers' => [],
+                ],
+            ];
         }
 
         foreach ($wrappedquestions as $wrapped) {
             question_bank::get_qtype($wrapped->qtype)->get_question_options($wrapped);
             // For wrapped questions the maxgrade is always equal to the defaultmark,
             // there is no entry in the question_instances table for them.
-            $wrapped->maxmark = $wrapped->defaultmark;
+            $wrapped->category = $question->categoryobject->id;
             $question->options->questions[$sequence[$wrapped->id]] = $wrapped;
         }
-        $question->hints = $DB->get_records('question_hints',
-                array('questionid' => $question->id), 'id ASC');
+        $question->hints = $DB->get_records('question_hints', ['questionid' => $question->id], 'id ASC');
 
         return true;
     }
 
+    /**
+     * Save question options
+     *
+     * @param  object $question
+     * @return void
+     */
     public function save_question_options($question) {
         global $DB;
         $result = new stdClass();
@@ -93,8 +117,7 @@ class qtype_multianswergreek extends question_type {
 
         // First we get all the existing wrapped questions.
         $oldwrappedquestions = [];
-        if ($oldwrappedids = $DB->get_field('question_multianswergreek', 'sequence',
-                array('question' => $question->id))) {
+        if ($oldwrappedids = $DB->get_field('question_multianswergreek', 'sequence', ['question' => $question->id])) {
             $oldwrappedidsarray = explode(',', $oldwrappedids);
             $unorderedquestions = $DB->get_records_list('question', 'id', $oldwrappedidsarray);
 
@@ -106,7 +129,7 @@ class qtype_multianswergreek extends question_type {
             }
         }
 
-        $sequence = array();
+        $sequence = [];
         foreach ($question->options->questions as $wrapped) {
             if (!empty($wrapped)) {
                 // If we still have some old wrapped question ids, reuse the next of them.
@@ -117,20 +140,21 @@ class qtype_multianswergreek extends question_type {
                     if ($oldwrappedquestion->qtype != $wrapped->qtype) {
                         switch ($oldwrappedquestion->qtype) {
                             case 'multichoice':
-                                $DB->delete_records('qtype_multichoice_options',
-                                        array('questionid' => $oldwrappedquestion->id));
+                                $DB->delete_records('qtype_multichoice_options', ['questionid' => $oldwrappedquestion->id]);
                                 break;
                             case 'shortanswer':
-                                $DB->delete_records('qtype_shortanswer_options',
-                                        array('questionid' => $oldwrappedquestion->id));
+                                $DB->delete_records('qtype_shortanswer_options', ['questionid' => $oldwrappedquestion->id]);
                                 break;
                             case 'numerical':
-                                $DB->delete_records('question_numerical',
-                                        array('question' => $oldwrappedquestion->id));
+                                $DB->delete_records('question_numerical', ['question' => $oldwrappedquestion->id]);
                                 break;
                             default:
-                                throw new moodle_exception('qtypenotrecognized',
-                                        'qtype_multianswergreek', '', $oldwrappedquestion->qtype);
+                                throw new moodle_exception(
+                                    'qtypenotrecognized',
+                                    'qtype_multianswergreek',
+                                    '',
+                                    $oldwrappedquestion->qtype
+                                );
                                 $wrapped->id = 0;
                         }
                     }
@@ -143,8 +167,7 @@ class qtype_multianswergreek extends question_type {
             $previousid = $wrapped->id;
             // Save_question strips this extra bit off the category again.
             $wrapped->category = $question->category . ',1';
-            $wrapped = question_bank::get_qtype($wrapped->qtype)->save_question(
-                    $wrapped, clone($wrapped));
+            $wrapped = question_bank::get_qtype($wrapped->qtype)->save_question( $wrapped, clone($wrapped));
             $sequence[] = $wrapped->id;
             if ($previousid != 0 && $previousid != $wrapped->id) {
                 // For some reasons a new question has been created
@@ -164,8 +187,7 @@ class qtype_multianswergreek extends question_type {
             $multianswergreek = new stdClass();
             $multianswergreek->question = $question->id;
             $multianswergreek->sequence = implode(',', $sequence);
-            if ($oldid = $DB->get_field('question_multianswergreek', 'id',
-                    array('question' => $question->id))) {
+            if ($oldid = $DB->get_field('question_multianswergreek', 'id', ['question' => $question->id])) {
                 $multianswergreek->id = $oldid;
                 $DB->update_record('question_multianswergreek', $multianswergreek);
             } else {
@@ -176,13 +198,20 @@ class qtype_multianswergreek extends question_type {
         $this->save_hints($question, true);
     }
 
+    /**
+     * Save question
+     *
+     * @param  object $authorizedquestion
+     * @param  object $form
+     * @return object
+     */
     public function save_question($authorizedquestion, $form) {
         $question = qtype_multianswergreek_extract_question($form->questiontext);
         if (isset($authorizedquestion->id)) {
             $question->id = $authorizedquestion->id;
         }
 
-        $question->category = $authorizedquestion->category;
+        $question->category = $form->category;
         $form->defaultmark = $question->defaultmark;
         $form->questiontext = $question->questiontext;
         $form->questiontextformat = 0;
@@ -191,22 +220,42 @@ class qtype_multianswergreek extends question_type {
         return parent::save_question($question, $form);
     }
 
+    /**
+     * Make hint
+     *
+     * @param  object $hint
+     * @return question_hint_with_parts
+     */
     protected function make_hint($hint) {
         return question_hint_with_parts::load_from_record($hint);
     }
 
+    /**
+     * Delete question
+     *
+     * @param  int $questionid
+     * @param  int $contextid
+     * @return void
+     */
     public function delete_question($questionid, $contextid) {
         global $DB;
-        $DB->delete_records('question_multianswergreek', array('question' => $questionid));
+
+        $DB->delete_records('question_multianswergreek', ['question' => $questionid]);
 
         parent::delete_question($questionid, $contextid);
     }
 
+    /**
+     * Initialise question instance
+     *
+     * @param  question_definition $question
+     * @param  object $questiondata
+     * @return void
+     */
     protected function initialise_question_instance(question_definition $question, $questiondata) {
         parent::initialise_question_instance($question, $questiondata);
 
-        $bits = preg_split('/\{#(\d+)\}/', $question->questiontext,
-                null, PREG_SPLIT_DELIM_CAPTURE);
+        $bits = preg_split('/\{#(\d+)\}/', $question->questiontext, -1, PREG_SPLIT_DELIM_CAPTURE);
         $question->textfragments[0] = array_shift($bits);
         $i = 1;
         while (!empty($bits)) {
@@ -217,112 +266,206 @@ class qtype_multianswergreek extends question_type {
         foreach ($questiondata->options->questions as $key => $subqdata) {
             $subqdata->contextid = $questiondata->contextid;
             if ($subqdata->qtype == 'multichoice') {
-                $answerregs = array();
-                if ($subqdata->options->shuffleanswers == 1 &&  isset($questiondata->options->shuffleanswers)
-                    && $questiondata->options->shuffleanswers == 0 ) {
+                if (
+                    $subqdata->options->shuffleanswers == 1 &&
+                    isset($questiondata->options->shuffleanswers) &&
+                    $questiondata->options->shuffleanswers == 0
+                ) {
                     $subqdata->options->shuffleanswers = 0;
                 }
             }
             $question->subquestions[$key] = question_bank::make_question($subqdata);
-            $question->subquestions[$key]->maxmark = $subqdata->defaultmark;
             if (isset($subqdata->options->layout)) {
                 $question->subquestions[$key]->layout = $subqdata->options->layout;
             }
         }
     }
 
+    /**
+     * Get random guess score
+     *
+     * @param  object $questiondata
+     * @return float
+     */
     public function get_random_guess_score($questiondata) {
         $fractionsum = 0;
         $fractionmax = 0;
         foreach ($questiondata->options->questions as $key => $subqdata) {
             $fractionmax += $subqdata->defaultmark;
-            $fractionsum += question_bank::get_qtype(
-                    $subqdata->qtype)->get_random_guess_score($subqdata);
+            $fractionsum += question_bank::get_qtype($subqdata->qtype)->get_random_guess_score($subqdata);
         }
         return $fractionsum / $fractionmax;
     }
 
+    /**
+     * Move files
+     *
+     * @param  int $questionid
+     * @param  int $oldcontextid
+     * @param  int $newcontextid
+     * @return void
+     */
     public function move_files($questionid, $oldcontextid, $newcontextid) {
         parent::move_files($questionid, $oldcontextid, $newcontextid);
         $this->move_files_in_hints($questionid, $oldcontextid, $newcontextid);
     }
 
+    /**
+     * Delete files
+     *
+     * @param  int $questionid
+     * @param  int $contextid
+     * @return void
+     */
     protected function delete_files($questionid, $contextid) {
         parent::delete_files($questionid, $contextid);
         $this->delete_files_in_hints($questionid, $contextid);
     }
 }
 
+// ANSWER_ALTERNATIVE regexes (plugin-unique names with 'GREEK_' prefix).
+if (!defined('GREEK_ANSWER_ALTERNATIVE_FRACTION_REGEX')) {
+    define('GREEK_ANSWER_ALTERNATIVE_FRACTION_REGEX', '=|%(-?[0-9]+)%');
+}
 
-// ANSWER_ALTERNATIVE regexes.
-define('ANSWER_ALTERNATIVE_FRACTION_REGEX',
-       '=|%(-?[0-9]+)%');
-// For the syntax '(?<!' see http://www.perl.com/doc/manual/html/pod/perlre.html#item_C.
-define('ANSWER_ALTERNATIVE_ANSWER_REGEX',
-        '.+?(?<!\\\\|&|&amp;)(?=[~#}]|$)');
-define('ANSWER_ALTERNATIVE_FEEDBACK_REGEX',
-        '.*?(?<!\\\\)(?=[~}]|$)');
-define('ANSWER_ALTERNATIVE_REGEX',
-       '(' . ANSWER_ALTERNATIVE_FRACTION_REGEX .')?' .
-       '(' . ANSWER_ALTERNATIVE_ANSWER_REGEX . ')' .
-       '(#(' . ANSWER_ALTERNATIVE_FEEDBACK_REGEX .'))?');
+if (!defined('GREEK_ANSWER_ALTERNATIVE_ANSWER_REGEX')) {
+    define('GREEK_ANSWER_ALTERNATIVE_ANSWER_REGEX', '.+?(?<!\\\\|&|&amp;)(?=[~#}]|$)');
+}
+
+if (!defined('GREEK_ANSWER_ALTERNATIVE_FEEDBACK_REGEX')) {
+    define('GREEK_ANSWER_ALTERNATIVE_FEEDBACK_REGEX', '.*?(?<!\\\\)(?=[~}]|$)');
+}
+
+if (!defined('GREEK_ANSWER_ALTERNATIVE_REGEX')) {
+    define(
+        'GREEK_ANSWER_ALTERNATIVE_REGEX',
+        '(' . GREEK_ANSWER_ALTERNATIVE_FRACTION_REGEX . ')?' .
+            '(' . GREEK_ANSWER_ALTERNATIVE_ANSWER_REGEX . ')' .
+            '(#(' . GREEK_ANSWER_ALTERNATIVE_FEEDBACK_REGEX . '))?'
+    );
+}
 
 // Parenthesis positions for ANSWER_ALTERNATIVE_REGEX.
-define('ANSWER_ALTERNATIVE_REGEX_PERCENTILE_FRACTION', 2);
-define('ANSWER_ALTERNATIVE_REGEX_FRACTION', 1);
-define('ANSWER_ALTERNATIVE_REGEX_ANSWER', 3);
-define('ANSWER_ALTERNATIVE_REGEX_FEEDBACK', 5);
+if (!defined('GREEK_ANSWER_ALTERNATIVE_REGEX_PERCENTILE_FRACTION')) {
+    define('GREEK_ANSWER_ALTERNATIVE_REGEX_PERCENTILE_FRACTION', 2);
+}
 
-// NUMBER_FORMATED_ALTERNATIVE_ANSWER_REGEX is used
-// for identifying numerical answers in ANSWER_ALTERNATIVE_REGEX_ANSWER.
-define('NUMBER_REGEX',
-        '-?(([0-9]+[.,]?[0-9]*|[.,][0-9]+)([eE][-+]?[0-9]+)?)');
-define('NUMERICAL_ALTERNATIVE_REGEX',
-        '^(' . NUMBER_REGEX . ')(:' . NUMBER_REGEX . ')?$');
+if (!defined('GREEK_ANSWER_ALTERNATIVE_REGEX_FRACTION')) {
+    define('GREEK_ANSWER_ALTERNATIVE_REGEX_FRACTION', 1);
+}
 
-// Parenthesis positions for NUMERICAL_FORMATED_ALTERNATIVE_ANSWER_REGEX.
-define('NUMERICAL_CORRECT_ANSWER', 1);
-define('NUMERICAL_ABS_ERROR_MARGIN', 6);
+if (!defined('GREEK_ANSWER_ALTERNATIVE_REGEX_ANSWER')) {
+    define('GREEK_ANSWER_ALTERNATIVE_REGEX_ANSWER', 3);
+}
+
+if (!defined('GREEK_ANSWER_ALTERNATIVE_REGEX_FEEDBACK')) {
+    define('GREEK_ANSWER_ALTERNATIVE_REGEX_FEEDBACK', 5);
+}
+
+// NUMBER regexes
+if (!defined('GREEK_NUMBER_REGEX')) {
+    define('GREEK_NUMBER_REGEX', '-?(([0-9]+[.,]?[0-9]*|[.,][0-9]+)([eE][-+]?[0-9]+)?)');
+}
+
+if (!defined('GREEK_NUMERICAL_ALTERNATIVE_REGEX')) {
+    define('GREEK_NUMERICAL_ALTERNATIVE_REGEX', '^(' . GREEK_NUMBER_REGEX . ')(:' . GREEK_NUMBER_REGEX . ')?$');
+}
+
+// Parenthesis positions for numerical.
+if (!defined('GREEK_NUMERICAL_CORRECT_ANSWER')) {
+    define('GREEK_NUMERICAL_CORRECT_ANSWER', 1);
+}
+
+if (!defined('GREEK_NUMERICAL_ABS_ERROR_MARGIN')) {
+    define('GREEK_NUMERICAL_ABS_ERROR_MARGIN', 6);
+}
 
 // Remaining ANSWER regexes.
-define('ANSWER_TYPE_DEF_REGEX',
+if (!defined('GREEK_ANSWER_TYPE_DEF_REGEX')) {
+    define(
+        'GREEK_ANSWER_TYPE_DEF_REGEX',
         '(NUMERICAL|NM)|(MULTICHOICE|MC)|(MULTICHOICE_V|MCV)|(MULTICHOICE_H|MCH)|' .
-        '(SHORTANSWER|SA|MW)|(SHORTANSWER_C|SAC|MWC)|' .
-        '(MULTICHOICE_S|MCS)|(MULTICHOICE_VS|MCVS)|(MULTICHOICE_HS|MCHS)|'.
-        '(MULTIRESPONSE|MR)|(MULTIRESPONSE_H|MRH)|(MULTIRESPONSE_S|MRS)|(MULTIRESPONSE_HS|MRHS)');
-define('ANSWER_START_REGEX',
-       '\{([0-9]*):(' . ANSWER_TYPE_DEF_REGEX . '):');
+            '(SHORTANSWER|SA|MW)|(SHORTANSWER_C|SAC|MWC)|' .
+            '(MULTICHOICE_S|MCS)|(MULTICHOICE_VS|MCVS)|(MULTICHOICE_HS|MCHS)|' .
+            '(MULTIRESPONSE|MR)|(MULTIRESPONSE_H|MRH)|(MULTIRESPONSE_S|MRS)|(MULTIRESPONSE_HS|MRHS)'
+    );
+}
 
-define('ANSWER_REGEX',
-        ANSWER_START_REGEX
-        . '(' . ANSWER_ALTERNATIVE_REGEX
-        . '(~'
-        . ANSWER_ALTERNATIVE_REGEX
-        . ')*)\}');
+if (!defined('GREEK_ANSWER_START_REGEX')) {
+    define('GREEK_ANSWER_START_REGEX', '\{([0-9]*):(' . GREEK_ANSWER_TYPE_DEF_REGEX . '):');
+}
+
+if (!defined('GREEK_ANSWER_REGEX')) {
+    define('GREEK_ANSWER_REGEX', GREEK_ANSWER_START_REGEX . '(' . GREEK_ANSWER_ALTERNATIVE_REGEX . '(~' . GREEK_ANSWER_ALTERNATIVE_REGEX . ')*)\}');
+}
 
 // Parenthesis positions for singulars in ANSWER_REGEX.
-define('ANSWER_REGEX_NORM', 1);
-define('ANSWER_REGEX_ANSWER_TYPE_NUMERICAL', 3);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE', 4);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR', 5);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL', 6);
-define('ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER', 7);
-define('ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER_C', 8);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_SHUFFLED', 9);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR_SHUFFLED', 10);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL_SHUFFLED', 11);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE', 12);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL', 13);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_SHUFFLED', 14);
-define('ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL_SHUFFLED', 15);
-define('ANSWER_REGEX_ALTERNATIVES', 16);
+if (!defined('GREEK_ANSWER_REGEX_NORM')) {
+    define('GREEK_ANSWER_REGEX_NORM', 1);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_NUMERICAL')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_NUMERICAL', 3);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE', 4);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR', 5);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL', 6);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER', 7);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER_C')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER_C', 8);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_SHUFFLED')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_SHUFFLED', 9);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR_SHUFFLED')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR_SHUFFLED', 10);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL_SHUFFLED')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL_SHUFFLED', 11);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE', 12);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL', 13);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_SHUFFLED')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_SHUFFLED', 14);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL_SHUFFLED')) {
+    define('GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL_SHUFFLED', 15);
+}
+
+if (!defined('GREEK_ANSWER_REGEX_ALTERNATIVES')) {
+    define('GREEK_ANSWER_REGEX_ALTERNATIVES', 16);
+}
 
 /**
  * Initialise subquestion fields that are constant across all MULTICHOICE
  * types.
  *
- * @param objet $wrapped  The subquestion to initialise
- *
+ * @param  object $wrapped  The subquestion to initialise
+ * @return void
  */
 function qtype_multianswergreek_initialise_multichoice_subquestion($wrapped) {
     $wrapped->qtype = 'multichoice';
@@ -339,6 +482,12 @@ function qtype_multianswergreek_initialise_multichoice_subquestion($wrapped) {
     $wrapped->incorrectfeedback['itemid'] = '';
 }
 
+/**
+ * Extract question
+ *
+ * @param  mixed $text
+ * @return object
+ */
 function qtype_multianswergreek_extract_question($text) {
     // Variable $text is an array [text][format][itemid].
     $question = new stdClass();
@@ -349,108 +498,104 @@ function qtype_multianswergreek_extract_question($text) {
     $question->generalfeedback['itemid'] = '';
 
     $question->options = new stdClass();
-    $question->options->questions = array();
+    $question->options->questions = [];
     $question->defaultmark = 0; // Will be increased for each answer norm.
 
-    for ($positionkey = 1;
-            preg_match('/'.ANSWER_REGEX.'/s', $question->questiontext['text'], $answerregs);
-            ++$positionkey) {
+    for ($positionkey = 1; preg_match('/' . GREEK_ANSWER_REGEX . '/s', $question->questiontext['text'], $answerregs); ++$positionkey) {
         $wrapped = new stdClass();
         $wrapped->generalfeedback['text'] = '';
         $wrapped->generalfeedback['format'] = FORMAT_HTML;
         $wrapped->generalfeedback['itemid'] = '';
-        if (isset($answerregs[ANSWER_REGEX_NORM]) && $answerregs[ANSWER_REGEX_NORM] !== '') {
-            $wrapped->defaultmark = $answerregs[ANSWER_REGEX_NORM];
+
+        if (isset($answerregs[GREEK_ANSWER_REGEX_NORM]) && $answerregs[GREEK_ANSWER_REGEX_NORM] !== '') {
+            $wrapped->defaultmark = $answerregs[GREEK_ANSWER_REGEX_NORM];
         } else {
             $wrapped->defaultmark = '1';
         }
-        if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_NUMERICAL])) {
+
+        if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_NUMERICAL])) {
             $wrapped->qtype = 'numerical';
-            $wrapped->multiplier = array();
-            $wrapped->units      = array();
+            $wrapped->multiplier = [];
+            $wrapped->units = [];
             $wrapped->instructions['text'] = '';
             $wrapped->instructions['format'] = FORMAT_HTML;
             $wrapped->instructions['itemid'] = '';
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER])) {
             $wrapped->qtype = 'shortanswer';
             $wrapped->usecase = 0;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER_C])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_SHORTANSWER_C])) {
             $wrapped->qtype = 'shortanswer';
             $wrapped->usecase = 1;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->shuffleanswers = 0;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_DROPDOWN;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_SHUFFLED])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_SHUFFLED])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->shuffleanswers = 1;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_DROPDOWN;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->shuffleanswers = 0;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_VERTICAL;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR_SHUFFLED])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_REGULAR_SHUFFLED])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->shuffleanswers = 1;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_VERTICAL;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->shuffleanswers = 0;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_HORIZONTAL;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL_SHUFFLED])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTICHOICE_HORIZONTAL_SHUFFLED])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->shuffleanswers = 1;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_HORIZONTAL;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->single = 0;
             $wrapped->shuffleanswers = 0;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_VERTICAL;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->single = 0;
             $wrapped->shuffleanswers = 0;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_HORIZONTAL;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_SHUFFLED])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_SHUFFLED])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->single = 0;
             $wrapped->shuffleanswers = 1;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_VERTICAL;
-        } else if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL_SHUFFLED])) {
+        } else if (!empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_MULTIRESPONSE_HORIZONTAL_SHUFFLED])) {
             qtype_multianswergreek_initialise_multichoice_subquestion($wrapped);
             $wrapped->single = 0;
             $wrapped->shuffleanswers = 1;
             $wrapped->layout = qtype_multichoice_base::LAYOUT_HORIZONTAL;
         } else {
-            print_error('unknownquestiontype', 'question', '', $answerregs[2]);
-            return false;
+            throw new moodle_exception('unknownquestiontype', 'question', '', $answerregs[2]);
         }
 
-        // Each $wrapped simulates a $form that can be processed by the
-        // respective save_question and save_question_options methods of the
-        // wrapped questiontypes.
-        $wrapped->answer   = array();
-        $wrapped->fraction = array();
-        $wrapped->feedback = array();
+        $wrapped->answer = [];
+        $wrapped->fraction = [];
+        $wrapped->feedback = [];
         $wrapped->questiontext['text'] = $answerregs[0];
         $wrapped->questiontext['format'] = FORMAT_HTML;
         $wrapped->questiontext['itemid'] = '';
         $answerindex = 0;
 
         $hasspecificfraction = false;
-        $remainingalts = $answerregs[ANSWER_REGEX_ALTERNATIVES];
-        while (preg_match('/~?'.ANSWER_ALTERNATIVE_REGEX.'/s', $remainingalts, $altregs)) {
-            if ('=' == $altregs[ANSWER_ALTERNATIVE_REGEX_FRACTION]) {
+        $remainingalts = $answerregs[GREEK_ANSWER_REGEX_ALTERNATIVES];
+        while (preg_match('/~?' . GREEK_ANSWER_ALTERNATIVE_REGEX . '/s', $remainingalts, $altregs)) {
+            if ('=' == $altregs[GREEK_ANSWER_ALTERNATIVE_REGEX_FRACTION]) {
                 $wrapped->fraction["{$answerindex}"] = '1';
-            } else if ($percentile = $altregs[ANSWER_ALTERNATIVE_REGEX_PERCENTILE_FRACTION]) {
+            } else if ($percentile = $altregs[GREEK_ANSWER_ALTERNATIVE_REGEX_PERCENTILE_FRACTION]) {
                 $wrapped->fraction["{$answerindex}"] = .01 * $percentile;
                 $hasspecificfraction = true;
             } else {
                 $wrapped->fraction["{$answerindex}"] = '0';
             }
-            if (isset($altregs[ANSWER_ALTERNATIVE_REGEX_FEEDBACK])) {
-                $feedback = html_entity_decode(
-                        $altregs[ANSWER_ALTERNATIVE_REGEX_FEEDBACK], ENT_QUOTES, 'UTF-8');
+
+            if (isset($altregs[GREEK_ANSWER_ALTERNATIVE_REGEX_FEEDBACK])) {
+                $feedback = html_entity_decode($altregs[GREEK_ANSWER_ALTERNATIVE_REGEX_FEEDBACK], ENT_QUOTES, 'UTF-8');
                 $feedback = str_replace('\}', '}', $feedback);
                 $wrapped->feedback["{$answerindex}"]['text'] = str_replace('\#', '#', $feedback);
                 $wrapped->feedback["{$answerindex}"]['format'] = FORMAT_HTML;
@@ -459,37 +604,36 @@ function qtype_multianswergreek_extract_question($text) {
                 $wrapped->feedback["{$answerindex}"]['text'] = '';
                 $wrapped->feedback["{$answerindex}"]['format'] = FORMAT_HTML;
                 $wrapped->feedback["{$answerindex}"]['itemid'] = '';
-
             }
-            if (!empty($answerregs[ANSWER_REGEX_ANSWER_TYPE_NUMERICAL])
-                    && preg_match('~'.NUMERICAL_ALTERNATIVE_REGEX.'~s',
-                            $altregs[ANSWER_ALTERNATIVE_REGEX_ANSWER], $numregs)) {
-                $wrapped->answer[] = $numregs[NUMERICAL_CORRECT_ANSWER];
-                if (array_key_exists(NUMERICAL_ABS_ERROR_MARGIN, $numregs)) {
-                    $wrapped->tolerance["{$answerindex}"] =
-                    $numregs[NUMERICAL_ABS_ERROR_MARGIN];
+
+            if (
+                !empty($answerregs[GREEK_ANSWER_REGEX_ANSWER_TYPE_NUMERICAL]) &&
+                preg_match('~' . GREEK_NUMERICAL_ALTERNATIVE_REGEX . '~s', $altregs[GREEK_ANSWER_ALTERNATIVE_REGEX_ANSWER], $numregs)
+            ) {
+                $wrapped->answer[] = $numregs[GREEK_NUMERICAL_CORRECT_ANSWER];
+                if (array_key_exists(GREEK_NUMERICAL_ABS_ERROR_MARGIN, $numregs)) {
+                    $wrapped->tolerance["{$answerindex}"] = $numregs[GREEK_NUMERICAL_ABS_ERROR_MARGIN];
                 } else {
                     $wrapped->tolerance["{$answerindex}"] = 0;
                 }
-            } else { // Tolerance can stay undefined for non numerical questions.
-                // Undo quoting done by the HTML editor.
-                $answer = html_entity_decode(
-                        $altregs[ANSWER_ALTERNATIVE_REGEX_ANSWER], ENT_QUOTES, 'UTF-8');
+            } else {
+                $answer = html_entity_decode($altregs[GREEK_ANSWER_ALTERNATIVE_REGEX_ANSWER], ENT_QUOTES, 'UTF-8');
                 $answer = str_replace('\}', '}', $answer);
                 $wrapped->answer["{$answerindex}"] = str_replace('\#', '#', $answer);
                 if ($wrapped->qtype == 'multichoice') {
-                    $wrapped->answer["{$answerindex}"] = array(
-                            'text' => $wrapped->answer["{$answerindex}"],
-                            'format' => FORMAT_HTML,
-                            'itemid' => '');
+                    $wrapped->answer["{$answerindex}"] = [
+                        'text' => $wrapped->answer["{$answerindex}"],
+                        'format' => FORMAT_HTML,
+                        'itemid' => '',
+                    ];
                 }
             }
+
             $tmp = explode($altregs[0], $remainingalts, 2);
             $remainingalts = $tmp[1];
             $answerindex++;
         }
 
-        // Fix the score for multichoice_multi questions (as positive scores should add up to 1, not have a maximum of 1).
         if (isset($wrapped->single) && $wrapped->single == 0) {
             $total = 0;
             foreach ($wrapped->fraction as $idx => $fraction) {
@@ -502,20 +646,20 @@ function qtype_multianswergreek_extract_question($text) {
                     if ($fraction > 0) {
                         $wrapped->fraction[$idx] = $fraction / $total;
                     } else if (!$hasspecificfraction) {
-                        // If no specific fractions are given, set incorrect answers to each cancel out one correct answer.
-                        $wrapped->fraction[$idx] = -(1.0 / $total);
+                        $wrapped->fraction[$idx] = - (1.0 / $total);
                     }
                 }
             }
         }
 
         $question->defaultmark += $wrapped->defaultmark;
-        $question->options->questions[$positionkey] = clone($wrapped);
-        $question->questiontext['text'] = implode("{#$positionkey}",
-                    explode($answerregs[0], $question->questiontext['text'], 2));
+        $question->options->questions[$positionkey] = clone ($wrapped);
+        $question->questiontext['text'] = implode("{#$positionkey}", explode($answerregs[0], $question->questiontext['text'], 2));
     }
+
     return $question;
 }
+
 
 /**
  * Validate a multianswergreek question.
@@ -524,7 +668,7 @@ function qtype_multianswergreek_extract_question($text) {
  * @return array Array of error messages with questions field names as keys.
  */
 function qtype_multianswergreek_validate_question($question) {
-    $errors = array();
+    $errors = [];
     if (!isset($question->options->questions)) {
         $errors['questiontext'] = get_string('questionsmissing', 'qtype_multianswergreek');
     } else {
@@ -544,10 +688,11 @@ function qtype_multianswergreek_validate_question($question) {
                     $trimmedanswer = trim($answer);
                     if ($trimmedanswer !== '') {
                         $answercount++;
-                        if ($subquestion->qtype == 'numerical' &&
-                                !(qtype_numerical::is_valid_number($trimmedanswer) || $trimmedanswer == '*')) {
-                            $errors[$prefix.'answer['.$key.']'] =
-                                    get_string('answermustbenumberorstar', 'qtype_numerical');
+                        if (
+                            $subquestion->qtype == 'numerical' &&
+                            !(qtype_numerical::is_valid_number($trimmedanswer) || $trimmedanswer == '*')
+                        ) {
+                            $errors[$prefix.'answer['.$key.']'] = get_string('answermustbenumberorstar', 'qtype_numerical');
                         }
                         if ($subquestion->fraction[$key] == 1) {
                             $maxgrade = true;

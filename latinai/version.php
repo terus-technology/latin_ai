@@ -15,17 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Latin AI question type version information.
+ * Version details
  *
- * @package   qtype_latinai
- * @copyright 2021 Terus E-Learning
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    qtype_latinai
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2021111001;
-$plugin->requires  = 2013101800;
+$plugin->version   = 2025111200;
+$plugin->requires  = 2024100100;
 $plugin->component = 'qtype_latinai';
 $plugin->maturity  = MATURITY_STABLE;
 $plugin->outestssufficient = true;

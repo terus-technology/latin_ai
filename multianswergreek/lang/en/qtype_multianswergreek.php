@@ -15,13 +15,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Strings for component 'qtype_multianswergreek', language 'en', branch 'MOODLE_20_STABLE'
+ * Multi answer greek question type language strings.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  1999 onwards Martin Dougiamas  {@link http://moodle.com}
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+// phpcs:ignoreFile moodle.Files.LangFilesOrdering.IncorrectOrder
 
 $string['confirmquestionsaveasedited'] = 'I confirm that I want the question to be saved as edited';
 $string['confirmsave'] = 'Confirm then save {$a}';
@@ -50,11 +52,11 @@ $string['qtypenotrecognized'] = 'questiontype {$a} not recognized';
 $string['questiondefinition'] = 'Question definition';
 $string['questiondeleted'] = 'Question deleted';
 $string['questioninquiz'] = '
-
 <ul>
-  <li>add or delete questions, </li>
-  <li>change the questions order in the text,</li>
-  <li>change their question type (numerical, shortanswer, multiple choice). </li></ul>
+    <li>add or delete questions, </li>
+    <li>change the questions order in the text,</li>
+    <li>change their question type (numerical, shortanswer, multiple choice). </li>
+</ul>
 ';
 $string['questionsadded'] = 'Question added';
 $string['questionsless'] = '{$a} question(s) less than in the multianswergreek question stored in the database';

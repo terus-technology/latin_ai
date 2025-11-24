@@ -15,9 +15,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package    qtype
- * @subpackage shortanswer
- * @copyright  2011 David Mudrak <david@moodle.com>
+ * Lib.
+ *
+ * @package    qtype_shortanswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -27,22 +29,26 @@ defined('MOODLE_INTERNAL') || die();
  * Short answer question type conversion handler
  */
 class moodle1_qtype_shortanswergreek_handler extends moodle1_qtype_handler {
-
     /**
+     * Get question subpaths
+     *
      * @return array
      */
     public function get_question_subpaths() {
-        return array(
+        return [
             'ANSWERS/ANSWER',
             'SHORTANSWER',
-        );
+        ];
     }
 
     /**
      * Appends the shortanswer specific information to the question
+     *
+     * @param  array $data
+     * @param  array $raw
+     * @return void
      */
     public function process_question(array $data, array $raw) {
-
         // Convert and write the answers first.
         if (isset($data['answers'])) {
             $this->write_answers($data['answers'], $this->pluginname);
@@ -51,7 +57,7 @@ class moodle1_qtype_shortanswergreek_handler extends moodle1_qtype_handler {
         // Convert and write the shortanswer extra fields.
         foreach ($data['shortanswer'] as $shortanswer) {
             $shortanswer['id'] = $this->converter->get_nextid();
-            $this->write_xml('shortanswer', $shortanswer, array('/shortanswer/id'));
+            $this->write_xml('shortanswer', $shortanswer, ['/shortanswer/id']);
         }
     }
 }

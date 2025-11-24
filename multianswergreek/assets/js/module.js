@@ -22,11 +22,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
 M.qtype_multianswergreek = M.qtype_multianswergreek || {};
 
-
-M.qtype_multianswergreek.init = function (Y, questiondiv) {
+M.qtype_multianswergreek.init = function(Y, questiondiv) {
     Y.one(questiondiv).all('span.subquestion').each(function(subqspan) {
         var feedbackspan = subqspan.one('.feedbackspan');
         if (!feedbackspan) {
@@ -46,8 +44,12 @@ M.qtype_multianswergreek.init = function (Y, questiondiv) {
         });
         overlay.render();
 
-        Y.on('mouseover', function() { overlay.show(); }, subqspan);
-        Y.on('mouseout', function() { overlay.hide(); }, subqspan);
+        Y.on('mouseover', function() {
+            overlay.show();
+        }, subqspan);
+        Y.on('mouseout', function() {
+            overlay.hide();
+        }, subqspan);
 
         feedbackspan.removeClass('accesshide');
     });

@@ -17,12 +17,11 @@
 /**
  * Unit tests for the multianswergreek question definition class.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  2011 The Open University
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -31,7 +30,6 @@ require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
 require_once($CFG->dirroot . '/question/type/multianswergreek/questiontype.php');
 require_once($CFG->dirroot . '/question/type/edit_question_form.php');
 require_once($CFG->dirroot . '/question/type/multianswergreek/edit_multianswergreek_form.php');
-
 
 /**
  * Unit tests for the multianswergreek question definition class.
@@ -43,11 +41,13 @@ class qtype_multianswergreek_test extends advanced_testcase {
     /** @var qtype_multianswergreek instance of the question type class to test. */
     protected $qtype;
 
-    protected function setUp() {
+    protected function setUp(): void {
+        parent::setUp();
         $this->qtype = new qtype_multianswergreek();
     }
 
-    protected function tearDown() {
+    protected function tearDown(): void {
+        parent::tearDown();
         $this->qtype = null;
     }
 

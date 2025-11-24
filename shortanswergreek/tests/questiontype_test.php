@@ -18,10 +18,10 @@
  * Unit tests for the shortanswer question type class.
  *
  * @package    qtype_shortanswergreek
- * @copyright  2013 The Open University
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -33,23 +33,28 @@ require_once($CFG->dirroot . '/question/type/shortanswer/edit_shortanswer_form.p
 
 /**
  * Unit tests for the shortanswer question type class.
- *
- * @copyright  2007 The Open University
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_shortanswergreek_test extends advanced_testcase {
+    /**
+     * @var array $includecoverage
+     */
     public static $includecoverage = array(
         'question/type/questiontypebase.php',
         'question/type/shortanswer/questiontype.php',
     );
 
+    /**
+     * @var mixed
+     */
     protected $qtype;
 
-    protected function setUp() {
+    protected function setUp(): void {
+        parent::setUp();
         $this->qtype = new qtype_shortanswergreek();
     }
 
-    protected function tearDown() {
+    protected function tearDown(): void {
+        parent::tearDown();
         $this->qtype = null;
     }
 
@@ -79,7 +84,7 @@ class qtype_shortanswergreek_test extends advanced_testcase {
                 13 => new question_possible_response('frog', 1),
                 14 => new question_possible_response('toad', 0.8),
                 15 => new question_possible_response('*', 0),
-                null => question_possible_response::no_response()
+                null => question_possible_response::no_response(),
             ),
         ), $this->qtype->get_possible_responses($q));
     }
@@ -91,7 +96,7 @@ class qtype_shortanswergreek_test extends advanced_testcase {
             $q->id => array(
                 13 => new question_possible_response('frog', 1),
                 0 => new question_possible_response(get_string('didnotmatchanyanswer', 'question'), 0),
-                null => question_possible_response::no_response()
+                null => question_possible_response::no_response(),
             ),
         ), $this->qtype->get_possible_responses($q));
     }

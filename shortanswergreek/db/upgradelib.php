@@ -17,26 +17,26 @@
 /**
  * Upgrade library code for the shortanswer question type.
  *
- * @package    qtype
- * @subpackage shortanswer
- * @copyright  2010 The Open University
+ * @package    qtype_shortanswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
 defined('MOODLE_INTERNAL') || die();
-
 
 /**
  * Class for converting attempt data for shortanswer questions when upgrading
  * attempts to the new question engine.
  *
  * This class is used by the code in question/engine/upgrade/upgradelib.php.
- *
- * @copyright  2010 The Open University
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_shortanswergreek_qe2_attempt_updater extends question_qtype_attempt_updater {
+    /**
+     * Right answer
+     *
+     * @return ?string
+     */
     public function right_answer() {
         foreach ($this->question->options->answers as $ans) {
             if ($ans->fraction > 0.999) {
@@ -45,10 +45,22 @@ class qtype_shortanswergreek_qe2_attempt_updater extends question_qtype_attempt_
         }
     }
 
+    /**
+     * Was answered?
+     *
+     * @param  object $state
+     * @return bool
+     */
     public function was_answered($state) {
         return !empty($state->answer);
     }
 
+    /**
+     * Response summary
+     *
+     * @param  object $state
+     * @return ?string
+     */
     public function response_summary($state) {
         if (!empty($state->answer)) {
             return $state->answer;
@@ -57,12 +69,34 @@ class qtype_shortanswergreek_qe2_attempt_updater extends question_qtype_attempt_
         }
     }
 
+    /**
+     * Set first step data elements
+     *
+     * @param  object $state
+     * @param  array $data
+     * @return void
+     */
     public function set_first_step_data_elements($state, &$data) {
+        // No action.
     }
 
+    /**
+     * Supply missing first step data
+     *
+     * @param  array $data
+     * @return void
+     */
     public function supply_missing_first_step_data(&$data) {
+        // No action.
     }
 
+    /**
+     * Set data elements for step
+     *
+     * @param  object $state
+     * @param  array $data
+     * @return void
+     */
     public function set_data_elements_for_step($state, &$data) {
         if (!empty($state->answer)) {
             $data['answer'] = $state->answer;

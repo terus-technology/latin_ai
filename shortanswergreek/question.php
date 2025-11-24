@@ -17,12 +17,11 @@
 /**
  * Short answer question definition class.
  *
- * @package    qtype
- * @subpackage shortanswer
- * @copyright  2009 The Open University
+ * @package    qtype_shortanswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -30,25 +29,37 @@ require_once($CFG->dirroot . '/question/type/questionbase.php');
 
 /**
  * Represents a short answer question.
- *
- * @copyright  2009 The Open University
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_shortanswergreek_question extends question_graded_by_strategy
-        implements question_response_answer_comparer {
-    /** @var boolean whether answers should be graded case-sensitively. */
+class qtype_shortanswergreek_question extends question_graded_by_strategy implements question_response_answer_comparer {
+    /** @var bool whether answers should be graded case-sensitively. */
     public $usecase;
     /** @var array of question_answer. */
-    public $answers = array();
+    public $answers = [];
 
+    /**
+     * Constructor
+     *
+     * @return void
+     */
     public function __construct() {
         parent::__construct(new question_first_matching_answer_grading_strategy($this));
     }
 
+    /**
+     * Get expected data
+     *
+     * @return array
+     */
     public function get_expected_data() {
-        return array('answer' => PARAM_RAW_TRIMMED);
+        return ['answer' => PARAM_RAW_TRIMMED];
     }
 
+    /**
+     * Summarise response
+     *
+     * @param  array $response
+     * @return ?string
+     */
     public function summarise_response(array $response) {
         if (isset($response['answer'])) {
             return $response['answer'];
@@ -57,6 +68,12 @@ class qtype_shortanswergreek_question extends question_graded_by_strategy
         }
     }
 
+    /**
+     * Unsummarise response
+     *
+     * @param  string $summary
+     * @return ?array
+     */
     public function un_summarise_response(string $summary) {
         if (!empty($summary)) {
             return ['answer' => $summary];
@@ -65,11 +82,22 @@ class qtype_shortanswergreek_question extends question_graded_by_strategy
         }
     }
 
+    /**
+     * Check if response is completed
+     *
+     * @param  array $response
+     * @return bool
+     */
     public function is_complete_response(array $response) {
-        return array_key_exists('answer', $response) &&
-                ($response['answer'] || $response['answer'] === '0');
+        return array_key_exists('answer', $response) && ($response['answer'] || $response['answer'] === '0');
     }
 
+    /**
+     * Get validation error
+     *
+     * @param  array $response
+     * @return string
+     */
     public function get_validation_error(array $response) {
         if ($this->is_gradable_response($response)) {
             return '';
@@ -77,26 +105,50 @@ class qtype_shortanswergreek_question extends question_graded_by_strategy
         return get_string('pleaseenterananswer', 'qtype_shortanswergreek');
     }
 
+    /**
+     * Check if response is the same
+     *
+     * @param  array $prevresponse
+     * @param  array $newresponse
+     * @return bool
+     */
     public function is_same_response(array $prevresponse, array $newresponse) {
-        return question_utils::arrays_same_at_key_missing_is_blank(
-                $prevresponse, $newresponse, 'answer');
+        return question_utils::arrays_same_at_key_missing_is_blank($prevresponse, $newresponse, 'answer');
     }
 
+    /**
+     * Get answers
+     *
+     * @return array
+     */
     public function get_answers() {
         return $this->answers;
     }
 
+    /**
+     * Compare response with answer
+     *
+     * @param  array $response
+     * @param  question_answer $answer
+     * @return bool
+     */
     public function compare_response_with_answer(array $response, question_answer $answer) {
         if (!array_key_exists('answer', $response) || is_null($response['answer'])) {
             return false;
         }
 
-        return self::compare_string_with_wildcard(
-                $response['answer'], $answer->answer, !$this->usecase);
+        return self::compare_string_with_wildcard($response['answer'], $answer->answer, !$this->usecase);
     }
 
+    /**
+     * Compare string with wildcard
+     *
+     * @param  string $string
+     * @param  string $pattern
+     * @param  bool $ignorecase
+     * @return bool
+     */
     public static function compare_string_with_wildcard($string, $pattern, $ignorecase) {
-
         // Normalise any non-canonical UTF-8 characters before we start.
         $pattern = self::safe_normalize($pattern);
         $string = self::safe_normalize($string);
@@ -106,7 +158,7 @@ class qtype_shortanswergreek_question extends question_graded_by_strategy
         $bits = preg_split('/(?<!\\\\)\*+/', $pattern);
 
         // Escape regexp special characters in the bits.
-        $escapedbits = array();
+        $escapedbits = [];
         foreach ($bits as $bit) {
             $escapedbits[] = preg_quote(str_replace('\*', '*', $bit), '|');
         }
@@ -122,8 +174,8 @@ class qtype_shortanswergreek_question extends question_graded_by_strategy
     }
 
     /**
-     * Normalise a UTf-8 string to FORM_C, avoiding the pitfalls in PHP's
-     * normalizer_normalize function.
+     * Normalise a UTf-8 string to FORM_C, avoiding the pitfalls in PHP's normalizer_normalize function.
+     *
      * @param string $string the input string.
      * @return string the normalised string.
      */
@@ -146,6 +198,11 @@ class qtype_shortanswergreek_question extends question_graded_by_strategy
         return $normalised;
     }
 
+    /**
+     * Get correct response
+     *
+     * @return array
+     */
     public function get_correct_response() {
         $response = parent::get_correct_response();
         if ($response) {
@@ -154,12 +211,18 @@ class qtype_shortanswergreek_question extends question_graded_by_strategy
         return $response;
     }
 
+    /**
+     * Clean response
+     *
+     * @param  string $answer
+     * @return string
+     */
     public function clean_response($answer) {
         // Break the string on non-escaped asterisks.
         $bits = preg_split('/(?<!\\\\)\*/', $answer);
 
         // Unescape *s in the bits.
-        $cleanbits = array();
+        $cleanbits = [];
         foreach ($bits as $bit) {
             $cleanbits[] = str_replace('\*', '*', $bit);
         }
@@ -168,11 +231,21 @@ class qtype_shortanswergreek_question extends question_graded_by_strategy
         return trim(implode(' ', $cleanbits));
     }
 
-    public function check_file_access($qa, $options, $component, $filearea,
-            $args, $forcedownload) {
+    /**
+     * Check file access
+     *
+     * @param  question_answer $qa
+     * @param  object $options
+     * @param  string $component
+     * @param  string $filearea
+     * @param  array $args
+     * @param  bool $forcedownload
+     * @return bool
+     */
+    public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
         if ($component == 'question' && $filearea == 'answerfeedback') {
             $currentanswer = $qa->get_last_qt_var('answer');
-            $answer = $this->get_matching_answer(array('answer' => $currentanswer));
+            $answer = $this->get_matching_answer(['answer' => $currentanswer]);
             $answerid = reset($args); // Itemid is answer id.
             return $options->feedback && $answer && $answerid == $answer->id;
 
@@ -180,8 +253,7 @@ class qtype_shortanswergreek_question extends question_graded_by_strategy
             return $this->check_hint_file_access($qa, $options, $args);
 
         } else {
-            return parent::check_file_access($qa, $options, $component, $filearea,
-                    $args, $forcedownload);
+            return parent::check_file_access($qa, $options, $component, $filearea, $args, $forcedownload);
         }
     }
 }

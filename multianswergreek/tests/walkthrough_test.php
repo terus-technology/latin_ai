@@ -17,18 +17,16 @@
 /**
  * This file contains overall tests of multianswergreek questions.
  *
- * @package    qtype
- * @subpackage multianswergreek
- * @copyright  2011 The Open University
+ * @package    qtype_multianswergreek
+ * @copyright  2021 Terus e-Learning
+ * @author     Khairu Aqsara <khairu@teruselearning.co.uk>, Muhamad Ramadhan <rama@teruselearning.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
-
 
 /**
  * Unit tests for the multianswergreek question type.
